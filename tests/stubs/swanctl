@@ -1,0 +1,16 @@
+#!/bin/sh
+# SPDX-License-Identifier: MIT
+# Test stub for `swanctl --list-sas`: one established site-to-site SA.
+
+case "$*" in
+*--list-sas*)
+	echo "peer_198_51_100_10: #1, ESTABLISHED, IKEv2, aes256/sha256/modp2048"
+	echo "  local  '192.0.2.1' @ 192.0.2.1[500]"
+	echo "  remote '198.51.100.10' @ 198.51.100.10[500]"
+	echo "  net: #2, INSTALLED, TUNNEL, ESP:aes256/sha256"
+	echo "       192.168.1.0/24 === 192.168.2.0/24"
+	;;
+*)
+	exit 1
+	;;
+esac

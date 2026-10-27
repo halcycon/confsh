@@ -97,10 +97,36 @@ forwards created in LuCI don't appear here, but they are still listed by
 Interface names map to firewall zones: `wan-interface eth0` uses the
 zone containing the network interface whose device is `eth0`.
 
+**`vpn ipsec`** (site-to-site, PSK) → OpenWrt `/etc/config/ipsec`
+(strongswan/swanctl). EdgeOS `ike-group`/`esp-group` become
+`crypto_proposal` sections (`ike_<name>`/`esp_<name>`), a peer becomes a
+`remote` (`peer_<addr>`), and each `tunnel` a `tunnel` section:
+
+```text
+set vpn ipsec ike-group IKE1 proposal 1 encryption aes256
+set vpn ipsec ike-group IKE1 proposal 1 hash sha256
+set vpn ipsec ike-group IKE1 proposal 1 dh-group 14
+set vpn ipsec esp-group ESP1 proposal 1 encryption aes256
+set vpn ipsec esp-group ESP1 proposal 1 hash sha256
+set vpn ipsec site-to-site peer 198.51.100.10 authentication mode pre-shared-secret
+set vpn ipsec site-to-site peer 198.51.100.10 authentication pre-shared-secret <psk>
+set vpn ipsec site-to-site peer 198.51.100.10 ike-group IKE1
+set vpn ipsec site-to-site peer 198.51.100.10 local-address 192.0.2.1
+set vpn ipsec site-to-site peer 198.51.100.10 tunnel 1 local prefix 192.168.1.0/24
+set vpn ipsec site-to-site peer 198.51.100.10 tunnel 1 remote prefix 192.168.2.0/24
+set vpn ipsec site-to-site peer 198.51.100.10 tunnel 1 esp-group ESP1
+```
+
+`dh-group` numbers map to strongswan `modp*`/`ecp*` groups;
+`pre-shared-secret` is shown masked. Operational status is
+`show vpn ipsec sa` (wraps `swanctl --list-sas`). Needs the strongswan
+package (which provides `/etc/config/ipsec`). v1 covers `proposal 1` per
+group; `key-exchange` and per-group `lifetime` are not yet exposed
+(key exchange stays at the OpenWrt default, IKEv2).
+
 Next up: `service nat` and `interfaces ethernet … vif` (confsh), and
-`interfaces wireguard`, `vpn ipsec`, `interfaces openvpn` and
-`interfaces tunnel` (contributed). Module authors: see
-[DIALECTS.md](DIALECTS.md).
+`interfaces wireguard`, `interfaces openvpn` and `interfaces tunnel`
+(contributed). Module authors: see [DIALECTS.md](DIALECTS.md).
 
 ## Configuration mode
 
@@ -328,7 +354,7 @@ equivalent; this is OpenWrt's own model. A `wifi-device` is a radio; a
 
 ## Not yet supported
 
-- EdgeOS-style paths beyond `port-forward` (see
+- EdgeOS-style paths beyond `port-forward` and `vpn ipsec` (see
   [EdgeOS paths](#edgeos-paths)), and importing an EdgeOS `config.boot`.
 - `load`, `merge`, `save <file>`, `rename`, `copy`, `comment` nodes.
 - `?` for inline help (use <kbd>Tab</kbd>).
