@@ -57,11 +57,11 @@ jobs:
               grep -E "^src-git (--root=package )?(base|packages) " feeds.conf.default > feeds.conf
               echo "src-link confsh /feed" >> feeds.conf
               ./scripts/feeds update -a
-              ./scripts/feeds install confsh
+              ./scripts/feeds install confsh libncurses
               make defconfig
-              # confsh is PKGARCH:=all and needs none of its runtime deps to
-              # build; do not fail on SDK breakage in them (24.10 bash: -lncurses).
-              make package/confsh/compile IGNORE_ERRORS=1 V=s || true
+              # 24.10 bash links -lncurses without declaring it; build it first.
+              make package/ncurses/compile
+              make package/confsh/compile V=s
               find bin -name "confsh*.apk" -o -name "confsh*.ipk" | xargs -r cp -t /out'
           ls -la out
           ls out/confsh* >/dev/null
