@@ -54,13 +54,14 @@ jobs:
           chmod 777 out
           docker run --rm -v "$PWD:/feed:ro" -v "$PWD/out:/out" \
             docker.io/openwrt/sdk:${{ matrix.sdk }} bash -ec '
-              grep -E "^src-git (--root=package )?(base|packages) " feeds.conf.default > feeds.conf
+              # Drop feeds confsh does not need; keep base (its line format
+              # differs between releases) and packages.
+              grep -vE "^src-git[^ ]* (luci|routing|telephony|video) " feeds.conf.default > feeds.conf
               echo "src-link confsh /feed" >> feeds.conf
+              cat feeds.conf
               ./scripts/feeds update -a
-              ./scripts/feeds install confsh libncurses
+              ./scripts/feeds install confsh
               make defconfig
-              # 24.10 bash links -lncurses without declaring it; build it first.
-              make package/ncurses/compile
               make package/confsh/compile V=s
               find bin -name "confsh*.apk" -o -name "confsh*.ipk" | xargs -r cp -t /out'
           ls -la out
