@@ -40,6 +40,7 @@ export function load(cur, cfg) {
 			id: s['.name'],
 			type: t,
 			anon: s['.anonymous'],
+			index: n,
 			label: s['.anonymous'] ? `@${n}` : s['.name'],
 			opts
 		});
@@ -48,9 +49,16 @@ export function load(cur, cfg) {
 	return out;
 };
 
+/* @N matches the N-th section of the type, named or not (like uci's @type[N]). */
+export function matches(s, stype, label) {
+	let m = match(label, /^@([0-9]+)$/);
+
+	return s.type == stype && (m ? s.index == int(m[1]) : s.label == label);
+};
+
 export function find(secs, stype, label) {
 	for (let s in secs ?? [])
-		if (s.type == stype && s.label == label)
+		if (matches(s, stype, label))
 			return s;
 
 	return null;
@@ -228,7 +236,7 @@ export function show(ctx, words, markers) {
 		let pair = ctx.get(words[0]);
 
 		for (let m in merge_secs(pair.old, pair.cur)) {
-			if (m.sec.type != words[1] || m.sec.label != words[2])
+			if (!matches(m.sec, words[1], words[2]))
 				continue;
 
 			for (let l in opt_lines(m))
@@ -295,7 +303,7 @@ export function commands(ctx, words) {
 			if (words[1] != null && s.type != words[1])
 				continue;
 
-			if (words[2] != null && s.label != words[2])
+			if (words[2] != null && !matches(s, words[1], words[2]))
 				continue;
 
 			let prefix = `set ${cfg} ${s.type} ${s.label}`;

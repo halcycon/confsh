@@ -1,7 +1,10 @@
 # AGENTS.md
 
-Human docs: [README.md](README.md). Design and roadmap:
-[docs/DESIGN.md](docs/DESIGN.md) — update it when behaviour changes.
+Human docs: [README.md](README.md), command reference
+[docs/COMMANDS.md](docs/COMMANDS.md). Design and roadmap:
+[docs/DESIGN.md](docs/DESIGN.md) — update both when behaviour changes.
+Every cheat-sheet example in COMMANDS.md must also be in
+`tests/t-cheatsheet.sh`.
 
 ## What this is
 

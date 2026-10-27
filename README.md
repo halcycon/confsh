@@ -26,29 +26,61 @@ root@router# confirm
 Commit confirmed
 ```
 
-Status: **v0.1, early**. Design and roadmap: [docs/DESIGN.md](docs/DESIGN.md).
+**Status: v0.1, early, looking for testers.** Tested in OpenWrt 25.12
+and 24.10 containers; not yet run on many real routers. Use
+`commit-confirm` when changing anything that could cut off your access.
+
+- Full syntax, every command, and an **EdgeOS → confsh cheat sheet**:
+  [docs/COMMANDS.md](docs/COMMANDS.md)
+- Design, limits and roadmap: [docs/DESIGN.md](docs/DESIGN.md)
 
 ## Install
 
-Requires OpenWrt 24.10+ (any architecture; the package is `PKGARCH:=all`).
-Pulls in `bash`, `ucode` and the `fs`/`uci`/`ubus` ucode modules.
+Requires OpenWrt 24.10 or newer, any architecture (one package fits all).
+It pulls in `bash`, `ucode` and the ucode `fs`/`uci`/`ubus` modules from
+the official feeds, so the router needs internet access while
+installing.
 
-- **Feed**: add to `feeds.conf`:
-  `src-git confsh https://github.com/halcycon/confsh.git`, then
-  `./scripts/feeds update confsh && ./scripts/feeds install confsh`, and
-  select *Utilities → Shells → confsh*.
-- **Prebuilt**: install the `.apk` (25.12+) or `.ipk` (24.10) from
-  Releases.
+Packages are on the [latest release](https://github.com/halcycon/confsh/releases/latest).
+They aren't signed with a key your router knows, so allow that one file
+explicitly.
 
-Run `confsh`, or make it the login shell for an account.
+OpenWrt 25.12 and newer (apk):
+
+```sh
+cd /tmp
+wget https://github.com/halcycon/confsh/releases/download/v0.1.0/confsh-0.1.0-r1.apk
+apk update
+apk add --allow-untrusted ./confsh-0.1.0-r1.apk
+```
+
+OpenWrt 24.10 (opkg):
+
+```sh
+cd /tmp
+wget https://github.com/halcycon/confsh/releases/download/v0.1.0/confsh_0.1.0-r1_all.ipk
+opkg update
+opkg install ./confsh_0.1.0-r1_all.ipk
+```
+
+Then log in over SSH as usual and run `confsh`.
+
+Building it into your own firmware: add
+`src-git confsh https://github.com/halcycon/confsh.git` to `feeds.conf`,
+run `./scripts/feeds update confsh && ./scripts/feeds install confsh`,
+and select *Utilities → Shells → confsh*.
+
+Removing it (`apk del confsh` / `opkg remove confsh`) leaves your
+configuration untouched.
 
 ## Commands
 
-Paths follow the UCI file layout:
+Paths follow the UCI file layout, not EdgeOS's tree (yet):
 `<config> <section-type> <section> <option> <value>`, for example
 `set firewall zone @1 masq 1` or `set network interface lan ipaddr 10.0.0.1`.
-Anonymous sections are `@N` (as in `uci show`). New sections are always
-created with a name.
+`@N` is the N-th section of a type, as in `uci show`. New sections are
+always created with a name. See the
+[cheat sheet](docs/COMMANDS.md#edgeos-cheat-sheet) for EdgeOS equivalents.
 
 | Mode | Commands |
 |------|----------|
@@ -72,6 +104,23 @@ and known values. Other packages can extend it:
 
 - Schema hints: `/usr/share/confsh/schema/*.json`
 - Op commands: executables under `/usr/libexec/confsh/op/…`
+
+## Testing and feedback
+
+Most useful right now:
+
+1. Install it and work through the
+   [cheat sheet](docs/COMMANDS.md#edgeos-cheat-sheet) on a spare or
+   lab router.
+2. Try `commit-confirm 2`, then drop your SSH session and check that
+   the change reverts. Also try rebooting before `confirm`.
+3. Tell us which EdgeOS commands you reach for that are missing.
+4. If you're migrating, a **sanitised** EdgeOS `config.boot` (passwords,
+   keys and public IPs removed) helps design the EdgeOS-path layer.
+
+Report problems and ideas as
+[GitHub issues](https://github.com/halcycon/confsh/issues). Include
+`show version`, the commands you ran, and the output.
 
 ## Development
 

@@ -120,9 +120,12 @@ UCI anonymous sections (`config rule` with no name) have no stable
 identity: `@rule[3]` shifts when rules are added or removed, while
 EdgeOS expects stable tags (`rule 10`). Decisions:
 
-1. confsh **displays** anonymous sections as `@N` and resolves `@N` to
-   the internal section ID at command time. Inside one session the IDs
-   in the delta are stable, so staged edits stay correct.
+1. confsh **displays** anonymous sections as `@N`. On input, `@N` means
+   the N-th section of the type whether named or not (same as uci's
+   `@type[N]`), so `dropbear dropbear @0` works whether the stock section
+   is anonymous (older releases) or named `main` (25.12). It is resolved
+   to the internal section ID at command time; inside one session the
+   IDs in the delta are stable, so staged edits stay correct.
 2. confsh **never creates** anonymous sections. `set firewall rule
    allow_ssh …` creates a *named* section `allow_ssh`; LuCI and fw4
    handle named sections fine.
