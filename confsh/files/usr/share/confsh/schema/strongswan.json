@@ -1,0 +1,41 @@
+{
+	"ipsec": {
+		"ipsec": {
+			"zone": {},
+			"interface": { "list": true },
+			"debug": {}
+		},
+		"crypto_proposal": {
+			"encryption_algorithm": { "values": [ "3des", "aes128", "aes192", "aes256", "aes128gcm128", "aes256gcm128" ] },
+			"hash_algorithm": { "values": [ "sha1", "sha256", "sha384", "sha512" ] },
+			"dh_group": { "values": [ "modp1024", "modp1536", "modp2048", "modp3072", "modp4096", "ecp256", "ecp384", "ecp521" ] },
+			"prf_algorithm": {}
+		},
+		"remote": {
+			"enabled": { "type": "bool" },
+			"gateway": {},
+			"local_gateway": {},
+			"local_ip": {},
+			"local_identifier": {},
+			"remote_identifier": {},
+			"authentication_method": { "values": [ "psk", "pubkey" ] },
+			"pre_shared_key": { "secret": true },
+			"crypto_proposal": { "list": true },
+			"tunnel": { "list": true },
+			"keyexchange": { "values": [ "ikev1", "ikev2", "ike" ] },
+			"local_cert": {},
+			"local_key": { "secret": true },
+			"rekeytime": {},
+			"mobike": { "type": "bool" }
+		},
+		"tunnel": {
+			"local_subnet": { "list": true },
+			"remote_subnet": { "list": true },
+			"crypto_proposal": { "list": true },
+			"startaction": { "values": [ "none", "start", "route" ] },
+			"closeaction": { "values": [ "none", "start", "route" ] },
+			"if_id": {},
+			"rekeytime": {}
+		}
+	}
+}

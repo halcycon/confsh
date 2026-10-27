@@ -1,0 +1,12 @@
+#!/bin/sh
+# SPDX-License-Identifier: MIT
+# show vpn ipsec sa: active IPsec security associations (strongSwan).
+
+if command -v swanctl >/dev/null 2>&1; then
+	exec swanctl --list-sas "$@"
+elif command -v ipsec >/dev/null 2>&1; then
+	exec ipsec statusall
+fi
+
+echo "strongSwan is not available (install the 'strongswan' package)" >&2
+exit 1
