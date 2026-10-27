@@ -1,0 +1,86 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  shellcheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: shellcheck
+        run: |
+          shellcheck -s sh confsh/files/usr/bin/confsh confsh/files/etc/init.d/confsh \
+            tests/run.sh tests/in-container.sh \
+            $(find confsh/files/usr/libexec/confsh/op -type f ! -name interfaces)
+          shellcheck -s bash confsh/files/usr/lib/confsh/confsh.bashrc tests/lib.sh tests/t-*.sh
+
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        release: ['25.12.3', '24.10.5']
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: tests (openwrt/rootfs ${{ matrix.release }})
+        env:
+          CONTAINER_ENGINE: docker
+          CONFSH_TEST_IMAGE: docker.io/openwrt/rootfs:x86-64-${{ matrix.release }}
+        run: sh tests/run.sh
+
+  build:
+    needs: [shellcheck, test]
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        sdk: ['x86-64-25.12.3', 'x86-64-24.10.5']
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: build package
+        run: |
+          mkdir -p out
+          chmod 777 out
+          docker run --rm -v "$PWD:/feed:ro" -v "$PWD/out:/out" \
+            docker.io/openwrt/sdk:${{ matrix.sdk }} bash -ec '
+              grep -E "^src-git (--root=package )?(base|packages) " feeds.conf.default > feeds.conf
+              echo "src-link confsh /feed" >> feeds.conf
+              ./scripts/feeds update -a
+              ./scripts/feeds install confsh
+              make defconfig
+              make package/confsh/compile V=s
+              find bin -name "confsh*.apk" -o -name "confsh*.ipk" | xargs -r cp -t /out'
+          ls -la out
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: confsh-${{ matrix.sdk }}
+          path: out/*
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: out
+          merge-multiple: true
+
+      - name: publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" out/* --repo "$GITHUB_REPOSITORY" --generate-notes

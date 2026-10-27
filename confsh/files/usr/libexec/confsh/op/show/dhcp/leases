@@ -1,0 +1,23 @@
+#!/bin/sh
+# SPDX-License-Identifier: GPL-2.0-only
+# show dhcp leases: dnsmasq DHCPv4 leases
+
+leases=$(uci -q get dhcp.@dnsmasq[0].leasefile)
+leases=${leases:-/tmp/dhcp.leases}
+
+if [ ! -s "$leases" ]; then
+	echo "No DHCP leases ($leases)"
+	exit 0
+fi
+
+now=$(date +%s)
+printf '%-16s %-18s %-10s %s\n' "IP address" "Hardware address" "Expires" "Hostname"
+while read -r expiry mac ip host _; do
+	if [ "$expiry" = 0 ]; then
+		left=never
+	else
+		left=$(( (expiry - now) / 60 ))m
+	fi
+	[ "$host" = "*" ] && host=
+	printf '%-16s %-18s %-10s %s\n' "$ip" "$mac" "$left" "$host"
+done < "$leases"

@@ -1,0 +1,4 @@
+#!/bin/sh
+# SPDX-License-Identifier: GPL-2.0-only
+# show system commit: archived configuration revisions
+exec /usr/libexec/confsh/backend show-commits

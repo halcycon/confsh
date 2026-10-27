@@ -1,0 +1,7 @@
+
+config archive 'archive'
+	option max '20'
+	option path '/etc/confsh/archive'
+
+config confirm 'confirm'
+	option minutes '10'

@@ -1,0 +1,79 @@
+{
+	"network": {
+		"interface": {
+			"proto": { "values": [ "static", "dhcp", "dhcpv6", "pppoe", "none", "wireguard" ] },
+			"device": {},
+			"ipaddr": {},
+			"netmask": {},
+			"gateway": {},
+			"broadcast": {},
+			"ip6addr": {},
+			"ip6gw": {},
+			"ip6assign": {},
+			"ip6hint": {},
+			"dns": { "list": true },
+			"dns_search": { "list": true },
+			"peerdns": { "type": "bool" },
+			"defaultroute": { "type": "bool" },
+			"delegate": { "type": "bool" },
+			"auto": { "type": "bool" },
+			"disabled": { "type": "bool" },
+			"metric": {},
+			"mtu": {},
+			"macaddr": {},
+			"hostname": {},
+			"username": {},
+			"password": {},
+			"reqaddress": { "values": [ "try", "force", "none" ] },
+			"reqprefix": {}
+		},
+		"device": {
+			"name": {},
+			"type": { "values": [ "bridge", "8021q", "8021ad", "macvlan", "veth" ] },
+			"ports": { "list": true },
+			"macaddr": {},
+			"mtu": {},
+			"vid": {},
+			"ifname": {},
+			"ipv6": { "type": "bool" },
+			"stp": { "type": "bool" },
+			"igmp_snooping": { "type": "bool" }
+		},
+		"bridge-vlan": {
+			"device": {},
+			"vlan": {},
+			"ports": { "list": true }
+		},
+		"route": {
+			"interface": {},
+			"target": {},
+			"netmask": {},
+			"gateway": {},
+			"metric": {},
+			"mtu": {},
+			"table": {},
+			"type": { "values": [ "unicast", "local", "broadcast", "multicast", "unreachable", "prohibit", "blackhole", "anycast" ] },
+			"disabled": { "type": "bool" }
+		},
+		"route6": {
+			"interface": {},
+			"target": {},
+			"gateway": {},
+			"metric": {},
+			"table": {}
+		},
+		"rule": {
+			"in": {},
+			"out": {},
+			"src": {},
+			"dest": {},
+			"lookup": {},
+			"priority": {},
+			"mark": {}
+		},
+		"globals": {
+			"ula_prefix": {},
+			"packet_steering": { "type": "bool" }
+		}
+	}
+}

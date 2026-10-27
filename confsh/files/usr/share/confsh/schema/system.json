@@ -1,0 +1,53 @@
+{
+	"system": {
+		"system": {
+			"hostname": {},
+			"timezone": {},
+			"zonename": {},
+			"description": {},
+			"notes": {},
+			"log_size": {},
+			"log_ip": {},
+			"log_port": {},
+			"log_proto": { "values": [ "udp", "tcp" ] },
+			"conloglevel": {},
+			"cronloglevel": {},
+			"ttylogin": { "type": "bool" }
+		},
+		"timeserver": {
+			"server": { "list": true },
+			"interface": {},
+			"enabled": { "type": "bool" },
+			"enable_server": { "type": "bool" }
+		},
+		"led": {
+			"name": {},
+			"sysfs": {},
+			"trigger": {},
+			"dev": {},
+			"mode": {}
+		}
+	},
+	"dropbear": {
+		"dropbear": {
+			"Port": {},
+			"Interface": {},
+			"PasswordAuth": { "values": [ "on", "off" ] },
+			"RootPasswordAuth": { "values": [ "on", "off" ] },
+			"RootLogin": { "type": "bool" },
+			"GatewayPorts": { "values": [ "on", "off" ] },
+			"BannerFile": {},
+			"MaxAuthTries": {},
+			"enable": { "type": "bool" }
+		}
+	},
+	"confsh": {
+		"archive": {
+			"max": {},
+			"path": {}
+		},
+		"confirm": {
+			"minutes": {}
+		}
+	}
+}

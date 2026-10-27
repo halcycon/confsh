@@ -1,0 +1,3 @@
+# Config-mode commands are only invoked interactively; tests source lib.sh
+# from the container path.
+disable=SC1091,SC2329

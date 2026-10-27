@@ -1,0 +1,7 @@
+#!/usr/bin/ucode -S
+// SPDX-License-Identifier: GPL-2.0-only
+// confsh backend: one short-lived process per shell command.
+
+import { main } from 'confsh.cmd';
+
+exit(main(ARGV));

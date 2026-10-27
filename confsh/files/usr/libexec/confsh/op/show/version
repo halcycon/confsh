@@ -1,0 +1,13 @@
+#!/bin/sh
+# SPDX-License-Identifier: GPL-2.0-only
+# show version: firmware, kernel and board
+
+# shellcheck disable=SC1091
+. /etc/openwrt_release 2>/dev/null
+
+printf 'Version:      %s\n' "${DISTRIB_DESCRIPTION:-unknown}"
+printf 'Revision:     %s\n' "${DISTRIB_REVISION:-unknown}"
+printf 'Target:       %s\n' "${DISTRIB_TARGET:-unknown}"
+printf 'Model:        %s\n' "$(cat /tmp/sysinfo/model 2>/dev/null || echo unknown)"
+printf 'Kernel:       %s\n' "$(uname -r)"
+printf 'Uptime:       %s\n' "$(uptime)"

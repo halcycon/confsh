@@ -1,0 +1,4 @@
+#!/bin/sh
+# SPDX-License-Identifier: GPL-2.0-only
+# show arp: IPv4 neighbour table
+exec ip -4 neigh show "$@"

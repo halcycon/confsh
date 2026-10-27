@@ -1,0 +1,4 @@
+#!/bin/sh
+# SPDX-License-Identifier: GPL-2.0-only
+# show ip route [args for `ip route show`]
+exec ip route show "$@"

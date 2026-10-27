@@ -1,0 +1,12 @@
+#!/bin/sh
+# SPDX-License-Identifier: GPL-2.0-only
+# show nat translations: connection tracking table
+
+if command -v conntrack >/dev/null 2>&1; then
+	exec conntrack -L "$@"
+elif [ -r /proc/net/nf_conntrack ]; then
+	exec cat /proc/net/nf_conntrack
+fi
+
+echo "Connection tracking is not available (install the 'conntrack' package)" >&2
+exit 1

@@ -1,0 +1,58 @@
+{
+	"dhcp": {
+		"dnsmasq": {
+			"domain": {},
+			"local": {},
+			"leasefile": {},
+			"resolvfile": {},
+			"server": { "list": true },
+			"address": { "list": true },
+			"interface": { "list": true },
+			"notinterface": { "list": true },
+			"cachesize": {},
+			"domainneeded": { "type": "bool" },
+			"localise_queries": { "type": "bool" },
+			"rebind_protection": { "type": "bool" },
+			"expandhosts": { "type": "bool" },
+			"authoritative": { "type": "bool" },
+			"readethers": { "type": "bool" },
+			"noresolv": { "type": "bool" },
+			"logqueries": { "type": "bool" },
+			"nonwildcard": { "type": "bool" },
+			"localservice": { "type": "bool" }
+		},
+		"dhcp": {
+			"interface": {},
+			"start": {},
+			"limit": {},
+			"leasetime": {},
+			"ignore": { "type": "bool" },
+			"force": { "type": "bool" },
+			"dhcpv4": { "values": [ "server", "disabled" ] },
+			"dhcpv6": { "values": [ "server", "relay", "hybrid", "disabled" ] },
+			"ra": { "values": [ "server", "relay", "hybrid", "disabled" ] },
+			"ra_flags": { "list": true },
+			"dhcp_option": { "list": true },
+			"dns": { "list": true }
+		},
+		"host": {
+			"name": {},
+			"mac": {},
+			"ip": {},
+			"leasetime": {},
+			"hostid": {},
+			"tag": {},
+			"dns": { "type": "bool" }
+		},
+		"domain": {
+			"name": {},
+			"ip": {}
+		},
+		"odhcpd": {
+			"maindhcp": { "type": "bool" },
+			"leasefile": {},
+			"leasetrigger": {},
+			"loglevel": {}
+		}
+	}
+}

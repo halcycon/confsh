@@ -1,0 +1,15 @@
+#!/bin/sh /etc/rc.common
+# SPDX-License-Identifier: GPL-2.0-only
+# Reverts an unconfirmed commit-confirm after a reboot, before network and
+# firewall start, so power-cycling recovers from a lock-out.
+
+# shellcheck disable=SC2034
+START=11
+
+boot() {
+	/usr/libexec/confsh/backend confirm-boot
+}
+
+start() {
+	:
+}

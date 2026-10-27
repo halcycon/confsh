@@ -1,0 +1,6 @@
+/bin/
+/dl/
+/sdk/
+*.apk
+*.ipk
+.config

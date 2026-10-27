@@ -1,0 +1,27 @@
+#!/usr/bin/ucode -S
+// SPDX-License-Identifier: GPL-2.0-only
+// show interfaces: logical interfaces with device, protocol, state, addresses
+
+let conn = require('ubus').connect();
+let dump = conn?.call('network.interface', 'dump');
+
+if (!dump?.interface) {
+	warn('show interfaces: netifd is not reachable over ubus\n');
+	exit(1);
+}
+
+printf('%-12s %-14s %-8s %-5s %s\n', 'Interface', 'Device', 'Proto', 'State', 'Addresses');
+
+for (let i in sort(dump.interface, (a, b) => (a.interface < b.interface) ? -1 : 1)) {
+	let addrs = [];
+
+	for (let a in i['ipv4-address'] ?? [])
+		push(addrs, `${a.address}/${a.mask}`);
+
+	for (let a in i['ipv6-address'] ?? [])
+		push(addrs, `${a.address}/${a.mask}`);
+
+	printf('%-12s %-14s %-8s %-5s %s\n',
+		i.interface, i.l3_device ?? i.device ?? '-', i.proto ?? '-',
+		i.up ? 'up' : 'down', join(' ', addrs));
+}

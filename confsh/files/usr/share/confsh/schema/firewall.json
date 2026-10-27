@@ -1,0 +1,83 @@
+{
+	"firewall": {
+		"defaults": {
+			"input": { "values": [ "ACCEPT", "REJECT", "DROP" ], "strict": true },
+			"output": { "values": [ "ACCEPT", "REJECT", "DROP" ], "strict": true },
+			"forward": { "values": [ "ACCEPT", "REJECT", "DROP" ], "strict": true },
+			"syn_flood": { "type": "bool" },
+			"synflood_protect": { "type": "bool" },
+			"drop_invalid": { "type": "bool" },
+			"flow_offloading": { "type": "bool" },
+			"flow_offloading_hw": { "type": "bool" }
+		},
+		"zone": {
+			"name": {},
+			"network": { "list": true },
+			"device": { "list": true },
+			"subnet": { "list": true },
+			"input": { "values": [ "ACCEPT", "REJECT", "DROP" ], "strict": true },
+			"output": { "values": [ "ACCEPT", "REJECT", "DROP" ], "strict": true },
+			"forward": { "values": [ "ACCEPT", "REJECT", "DROP" ], "strict": true },
+			"masq": { "type": "bool" },
+			"masq6": { "type": "bool" },
+			"mtu_fix": { "type": "bool" },
+			"log": { "type": "bool" },
+			"family": { "values": [ "ipv4", "ipv6", "any" ] }
+		},
+		"forwarding": {
+			"src": {},
+			"dest": {},
+			"family": { "values": [ "ipv4", "ipv6", "any" ] },
+			"enabled": { "type": "bool" }
+		},
+		"rule": {
+			"name": {},
+			"src": {},
+			"dest": {},
+			"proto": { "values": [ "tcp", "udp", "tcpudp", "icmp", "all" ] },
+			"src_ip": {},
+			"src_port": {},
+			"dest_ip": {},
+			"dest_port": {},
+			"icmp_type": { "list": true },
+			"family": { "values": [ "ipv4", "ipv6", "any" ] },
+			"target": { "values": [ "ACCEPT", "REJECT", "DROP", "MARK", "NOTRACK" ] },
+			"limit": {},
+			"set_mark": {},
+			"enabled": { "type": "bool" }
+		},
+		"redirect": {
+			"name": {},
+			"src": {},
+			"dest": {},
+			"proto": { "values": [ "tcp", "udp", "tcpudp", "icmp", "all" ] },
+			"src_ip": {},
+			"src_dport": {},
+			"dest_ip": {},
+			"dest_port": {},
+			"target": { "values": [ "DNAT", "SNAT" ] },
+			"reflection": { "type": "bool" },
+			"enabled": { "type": "bool" }
+		},
+		"nat": {
+			"name": {},
+			"src": {},
+			"src_ip": {},
+			"dest_ip": {},
+			"proto": { "values": [ "tcp", "udp", "tcpudp", "icmp", "all" ] },
+			"target": { "values": [ "SNAT", "MASQUERADE", "ACCEPT" ] },
+			"snat_ip": {},
+			"enabled": { "type": "bool" }
+		},
+		"ipset": {
+			"name": {},
+			"match": { "list": true },
+			"entry": { "list": true },
+			"family": { "values": [ "ipv4", "ipv6" ] }
+		},
+		"include": {
+			"path": {},
+			"type": { "values": [ "script", "nftables" ] }
+		}
+	}
+}

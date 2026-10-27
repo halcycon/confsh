@@ -1,0 +1,4 @@
+#!/bin/sh
+# SPDX-License-Identifier: GPL-2.0-only
+# show configuration commands [<config> [<type> [<section>]]]
+exec /usr/libexec/confsh/backend show-config commands "$@"
