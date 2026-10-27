@@ -1,0 +1,46 @@
+#!/usr/bin/ucode -S
+// SPDX-License-Identifier: MIT
+// show interfaces wireless: radios and SSIDs with live channel and client count
+
+import { fail, str, table, ubus_call } from 'confsh.util';
+
+if (length(ARGV))
+	fail(`Invalid command: show interfaces wireless ${ARGV[0]}`);
+
+let st = ubus_call('network.wireless', 'status');
+
+if (!st || !length(keys(st)))
+	fail('show interfaces wireless: no wireless radios (netifd reports none)');
+
+let rows = [];
+let live = true;
+
+for (let radio in sort(keys(st))) {
+	let r = st[radio];
+	let state = r.up ? 'up' : (r.disabled ? 'disabled' : 'down');
+
+	if (!length(r.interfaces ?? [])) {
+		push(rows, [ radio, str(r.config?.band), str(r.config?.channel), '-', '-', '-', '-', state, '-' ]);
+		continue;
+	}
+
+	for (let i in r.interfaces) {
+		let dev = i.ifname;
+		let info = dev ? ubus_call('iwinfo', 'info', { device: dev }) : null;
+		let assoc = dev ? ubus_call('iwinfo', 'assoclist', { device: dev }) : null;
+
+		if (dev && !info)
+			live = false;
+
+		push(rows, [
+			radio, str(r.config?.band), str(info?.channel ?? r.config?.channel),
+			str(dev), str(i.config?.mode), str(i.config?.ssid), str(i.config?.network),
+			state, assoc ? length(assoc.results ?? []) : '-'
+		]);
+	}
+}
+
+table([ 'Radio', 'Band', 'Channel', 'Interface', 'Mode', 'SSID', 'Network', 'State', 'Clients' ], rows);
+
+if (!live)
+	print('\n(live channel/client data needs rpcd-mod-iwinfo)\n');

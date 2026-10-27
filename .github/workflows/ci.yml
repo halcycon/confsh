@@ -19,8 +19,8 @@ jobs:
       - name: shellcheck
         run: |
           shellcheck -s sh confsh/files/usr/bin/confsh confsh/files/etc/init.d/confsh \
-            tests/run.sh tests/in-container.sh \
-            $(find confsh/files/usr/libexec/confsh/op -type f ! -name interfaces)
+            tests/run.sh tests/in-container.sh tests/stubs/* \
+            $(grep -rl '^#!/bin/sh' confsh/files/usr/libexec/confsh/op)
           shellcheck -s bash confsh/files/usr/lib/confsh/confsh.bashrc tests/lib.sh tests/t-*.sh
 
   test:

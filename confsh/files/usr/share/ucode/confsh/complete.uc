@@ -2,7 +2,7 @@
 'use strict';
 
 import * as fs from 'fs';
-import { startswith, as_list, schema, CONFDIR } from 'confsh.util';
+import { startswith, as_list, schema, type_hints, is_secret, CONFDIR } from 'confsh.util';
 import * as tree from 'confsh.tree';
 
 export const OPDIR = getenv('CONFSH_OPDIR') ?? '/usr/libexec/confsh/op';
@@ -43,7 +43,8 @@ export function config_path(cmd, words, cur, working) {
 
 		if (cmd == 'set' || cmd == 'edit')
 			for (let t in keys(sch))
-				push(cand, t);
+				if (index(t, '*') < 0)
+					push(cand, t);
 	}
 	else if (d == 2) {
 		for (let s in secs)
@@ -53,7 +54,7 @@ export function config_path(cmd, words, cur, working) {
 	else if (cmd != 'edit') {
 		let sec = tree.find(secs, words[1], words[2]);
 		let opts = sec?.opts ?? {};
-		let tsch = sch[words[1]] ?? {};
+		let tsch = type_hints(cfg, words[1]) ?? {};
 
 		if (d == 3) {
 			for (let k in keys(opts))
@@ -73,7 +74,7 @@ export function config_path(cmd, words, cur, working) {
 				if (h?.type == 'bool')
 					push(cand, '0', '1');
 			}
-			else if (cmd == 'delete') {
+			else if (cmd == 'delete' && !is_secret(cfg, words[1], words[3])) {
 				for (let v in as_list(opts[words[3]]))
 					push(cand, v);
 			}

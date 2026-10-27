@@ -109,11 +109,35 @@ Notes:
 | `show configuration commands [<config> …]` | Committed configuration as `set` commands |
 | `show system commit` | Archived revisions (newest is 0), with user and comment |
 | `show interfaces` | Logical interfaces: device, protocol, state, addresses |
+| `show interfaces wireguard [<interface>]` | Like `wg show`, plus each peer's description and its confsh path; handshake age and transfer |
+| `show interfaces wireless` | Radios and SSIDs: band, live channel, mode, network, state, client count |
+| `show interfaces wireless clients` | Associated stations: signal, rates, connected time, DHCP IP and hostname |
+| `show firewall [zones\|forwardings\|rules]` | Firewall defaults (including offload), zones, forwardings, rules |
+| `show nat rules` | Port forwards / DNAT, SNAT rules, masquerading zones |
 | `show ip route` | IPv4 routing table (extra args go to `ip route show`) |
 | `show arp` | IPv4 neighbour table |
 | `show dhcp leases` | dnsmasq DHCPv4 leases |
 | `show nat translations` | Connection tracking table (`conntrack -L` if installed) |
 | `show version` | Firmware, target, board, kernel, uptime |
+
+The firewall, NAT and WireGuard views include a **Section** column or
+tag (for example `rule @3` or `[network wireguard_wg0 laptop]`). That's
+the path to use with `set` and `delete`, which helps with sections
+LuCI created without names.
+
+`show interfaces wireguard` needs `wireguard-tools` (installed with
+WireGuard support). Live wireless data needs `rpcd-mod-iwinfo`
+(installed with LuCI).
+
+### Secrets
+
+Private keys, pre-shared keys and passwords (WireGuard `private_key` /
+`preshared_key`, Wi-Fi `key`, PPPoE `password`, …) are shown as
+`********` in `show`, `compare` and `show configuration [commands]`, so
+output is safe to paste into an issue. To see them, run with
+`CONFSH_SHOW_SECRETS=1`, e.g.
+`CONFSH_SHOW_SECRETS=1 confsh show configuration commands`. `set`
+stores what you type; nothing is hashed.
 
 `show` on its own lists what's available. Other packages can add
 commands (see [Extending](#extending)).
@@ -161,8 +185,10 @@ into a *device* (port, bridge, VLAN) and a logical *interface* (`lan`,
 | `set interfaces ethernet eth0 address dhcp` | `set network interface wan proto dhcp` |
 | `set interfaces ethernet eth1 vif 10 address 192.168.20.1/24` | `set network device vlan10 type 8021q`<br>`set network device vlan10 ifname eth1`<br>`set network device vlan10 vid 10`<br>`set network device vlan10 name eth1.10`<br>`set network interface iot device eth1.10`<br>`set network interface iot proto static`<br>`set network interface iot ipaddr 192.168.20.1`<br>`set network interface iot netmask 255.255.255.0`<br>`set firewall zone @0 network iot` |
 
-The VLAN example is for a plain NIC. On switches with DSA bridge VLANs
-the device side uses `bridge-vlan` sections instead.
+The VLAN example above is for a plain NIC (an 802.1Q device on top of
+`eth1`). Routers with a built-in switch (DSA: ports named `lan1`,
+`lan2`, … in a `br-lan` bridge) use `bridge-vlan` sections instead. See
+[VLANs on a switch](#vlans-on-a-switch-dsa) below.
 
 **DHCP and DNS**
 
@@ -189,6 +215,68 @@ OpenWrt's firewall is zone-based: rules say which zone traffic comes
 from (`src`) and goes to (`dest`, omitted for traffic to the router
 itself) instead of attaching named rule sets to interfaces.
 
+**WireGuard.** The interface is a `network interface` with
+`proto wireguard`. Each peer is its own section of type
+`wireguard_<interface>`, so peers of `wg0` are `network wireguard_wg0
+<name>`. Give peers a name when you create them. Peers created in LuCI
+have no name: `show interfaces wireguard` prints the `@N` path for each.
+
+| EdgeOS | confsh |
+|--------|--------|
+| `set interfaces wireguard wg0 address 10.0.0.1/24` | `set network interface wg0 proto wireguard`<br>`set network interface wg0 addresses 10.0.0.1/24` |
+| `set interfaces wireguard wg0 listen-port 51820` | `set network interface wg0 listen_port 51820` |
+| `set interfaces wireguard wg0 private-key /config/auth/wg.key` | `set network interface wg0 private_key SERVER_PRIVATE_KEY=` (the key itself, not a file) |
+| `set interfaces wireguard wg0 peer LAPTOP_PUBLIC_KEY= allowed-ips 10.0.0.2/32`<br>`… peer LAPTOP_PUBLIC_KEY= description "Adam laptop"` | `set network wireguard_wg0 laptop public_key LAPTOP_PUBLIC_KEY=`<br>`set network wireguard_wg0 laptop description "Adam laptop"`<br>`set network wireguard_wg0 laptop allowed_ips 10.0.0.2/32` |
+| `set interfaces wireguard wg0 route-allowed-ips true` | per peer: `set network wireguard_wg0 laptop route_allowed_ips 1` |
+| `… peer SITE_B_PUBLIC_KEY= endpoint vpn.example.com:51820`<br>`… peer SITE_B_PUBLIC_KEY= persistent-keepalive 25`<br>`… peer SITE_B_PUBLIC_KEY= allowed-ips 192.168.50.0/24` | `set network wireguard_wg0 site_b public_key SITE_B_PUBLIC_KEY=`<br>`set network wireguard_wg0 site_b endpoint_host vpn.example.com`<br>`set network wireguard_wg0 site_b endpoint_port 51820`<br>`set network wireguard_wg0 site_b persistent_keepalive 25`<br>`set network wireguard_wg0 site_b allowed_ips 10.0.0.3/32`<br>`set network wireguard_wg0 site_b allowed_ips 192.168.50.0/24`<br>`set network wireguard_wg0 site_b route_allowed_ips 1` |
+| `delete … peer SITE_B_PUBLIC_KEY= allowed-ips 192.168.50.0/24` | `delete network wireguard_wg0 site_b allowed_ips 192.168.50.0/24` |
+| `delete interfaces wireguard wg0 peer LAPTOP_PUBLIC_KEY=` | `delete network wireguard_wg0 laptop` |
+| firewall: allow UDP 51820 to the router | `set firewall rule wg_in name Allow-WireGuard`<br>`set firewall rule wg_in src wan`<br>`set firewall rule wg_in proto udp`<br>`set firewall rule wg_in dest_port 51820`<br>`set firewall rule wg_in target ACCEPT` |
+| treat tunnel traffic like LAN | `set firewall zone @0 network wg0` (zone `@0` is `lan`) |
+| `show interfaces wireguard wg0` / `sudo wg` | `show interfaces wireguard wg0` |
+
+**Zones and forwardings: a guest network.** EdgeOS has no zones; this
+is the OpenWrt way to get "guests reach the internet but not the LAN".
+A forwarding allows traffic from one zone to another; without one,
+the zone's `forward` policy applies.
+
+| Step | confsh |
+|------|--------|
+| Interface | `set network interface guest proto static`<br>`set network interface guest ipaddr 192.168.30.1`<br>`set network interface guest netmask 255.255.255.0` |
+| DHCP | `set dhcp dhcp guest interface guest`<br>`set dhcp dhcp guest start 100`<br>`set dhcp dhcp guest limit 50` |
+| Zone | `set firewall zone guest name guest`<br>`set firewall zone guest network guest`<br>`set firewall zone guest input REJECT`<br>`set firewall zone guest output ACCEPT`<br>`set firewall zone guest forward REJECT` |
+| Guest → internet | `set firewall forwarding guest_wan src guest`<br>`set firewall forwarding guest_wan dest wan` |
+| Allow DNS and DHCP to the router | `set firewall rule guest_dns name Guest-DNS`<br>`set firewall rule guest_dns src guest`<br>`set firewall rule guest_dns dest_port 53`<br>`set firewall rule guest_dns target ACCEPT`<br>`set firewall rule guest_dhcp name Guest-DHCP`<br>`set firewall rule guest_dhcp src guest`<br>`set firewall rule guest_dhcp proto udp`<br>`set firewall rule guest_dhcp dest_port 67`<br>`set firewall rule guest_dhcp target ACCEPT` |
+
+Check the result with `show firewall`.
+
+**VLANs on a switch (DSA).** On routers with built-in switch ports,
+VLANs are `bridge-vlan` sections on `br-lan`, and each VLAN becomes a
+device `br-lan.<vid>`. Port flags: `:t` tagged, `:u` untagged, `*`
+primary VLAN (PVID). **Quote values containing `*`** so the shell
+doesn't expand them. Once any `bridge-vlan` exists, the existing LAN
+must also have one (usually VLAN 1) and use `br-lan.1`, so do all of
+this in one commit, ideally with `commit-confirm`:
+
+| Step | confsh |
+|------|--------|
+| VLAN 1 (existing LAN, untagged) | `set network bridge-vlan lan_vlan1 device br-lan`<br>`set network bridge-vlan lan_vlan1 vlan 1`<br>`set network bridge-vlan lan_vlan1 ports 'eth0:u*'`<br>`set network bridge-vlan lan_vlan1 ports 'eth1:u*'`<br>`set network interface lan device br-lan.1` |
+| VLAN 20, tagged on eth1 | `set network bridge-vlan lan_vlan20 device br-lan`<br>`set network bridge-vlan lan_vlan20 vlan 20`<br>`set network bridge-vlan lan_vlan20 ports eth1:t`<br>`set network interface cams device br-lan.20`<br>`set network interface cams proto static`<br>`set network interface cams ipaddr 192.168.40.1`<br>`set network interface cams netmask 255.255.255.0` |
+
+Use your router's port names (`lan1`, `lan2`, … on most DSA devices).
+Then add a firewall zone for the new interface as in the guest example.
+
+**Wireless.** EdgeRouters have no Wi-Fi, so there's no EdgeOS
+equivalent; this is OpenWrt's own model. A `wifi-device` is a radio; a
+`wifi-iface` is an SSID on a radio, attached to a network.
+
+| Task | confsh |
+|------|--------|
+| Enable a radio | `set wireless wifi-device radio0 disabled 0`<br>`set wireless wifi-device radio0 country GB`<br>`set wireless wifi-device radio0 channel 6` |
+| Main SSID (WPA2/WPA3) | `set wireless wifi-iface default_radio0 ssid HomeNet`<br>`set wireless wifi-iface default_radio0 encryption sae-mixed`<br>`set wireless wifi-iface default_radio0 key "correct horse battery staple"` |
+| Guest SSID on the guest network | `set wireless wifi-iface guest_radio0 device radio0`<br>`set wireless wifi-iface guest_radio0 mode ap`<br>`set wireless wifi-iface guest_radio0 network guest`<br>`set wireless wifi-iface guest_radio0 ssid Guest`<br>`set wireless wifi-iface guest_radio0 encryption psk2`<br>`set wireless wifi-iface guest_radio0 key "guest password"`<br>`set wireless wifi-iface guest_radio0 isolate 1` |
+| Status | `show interfaces wireless`, `show interfaces wireless clients` |
+
 **Operational**
 
 | EdgeOS | confsh |
@@ -198,6 +286,8 @@ itself) instead of attaching named rule sets to interfaces.
 | `show arp` | `show arp` |
 | `show dhcp leases` | `show dhcp leases` |
 | `show nat translations` | `show nat translations` |
+| `show nat rules` / `show port-forward` | `show nat rules` |
+| `show firewall` | `show firewall` (config view; no per-rule counters yet) |
 | `show configuration` / `show configuration commands` | same |
 | `show system commit` | same |
 | `show version` | same |
@@ -237,4 +327,6 @@ together, used for completion and list detection:
 ```
 
 `values` are completion suggestions; with `"strict": true` they are also
-enforced. Options not in any hint are always accepted.
+enforced. `"secret": true` masks the value in all output. A section type
+ending in `*` matches by prefix (`"wireguard_*"` covers `wireguard_wg0`,
+`wireguard_wg1`, …). Options not in any hint are always accepted.

@@ -1,0 +1,89 @@
+#!/usr/bin/ucode -S
+// SPDX-License-Identifier: MIT
+// show interfaces wireguard [<interface>]: like `wg show`, plus peer
+// descriptions and the confsh path of each peer section.
+
+import * as fs from 'fs';
+import { fail, human_bytes, duration } from 'confsh.util';
+import * as tree from 'confsh.tree';
+
+let want = ARGV[0];
+
+if (system('command -v wg >/dev/null 2>&1') != 0)
+	fail('show interfaces wireguard: wireguard-tools is not installed');
+
+let p = fs.popen('wg show all dump 2>/dev/null', 'r');
+let dump = p?.read('all') ?? '';
+
+p?.close();
+
+let ifaces = {};
+let order = [];
+
+for (let line in split(trim(dump), '\n')) {
+	let f = split(line, '\t');
+
+	if (length(f) == 5) {
+		ifaces[f[0]] = { pub: f[2], port: f[3], peers: [] };
+		push(order, f[0]);
+	}
+	else if (length(f) == 9 && ifaces[f[0]]) {
+		push(ifaces[f[0]].peers, {
+			pub: f[1], endpoint: f[3], allowed: f[4],
+			handshake: int(f[5]), rx: f[6], tx: f[7], keepalive: f[8]
+		});
+	}
+}
+
+if (want != null && !ifaces[want])
+	fail(`show interfaces wireguard: '${want}' is not an active WireGuard interface`);
+
+if (!length(order)) {
+	print('No WireGuard interfaces are up\n');
+	exit(0);
+}
+
+let cur = require('uci').cursor();
+let net = tree.load(cur, 'network') ?? [];
+let now = time();
+
+for (let name in order) {
+	if (want != null && name != want)
+		continue;
+
+	let wg = ifaces[name];
+	let peers = {};
+
+	for (let s in net)
+		if (s.type == `wireguard_${name}` && s.opts.public_key)
+			peers[s.opts.public_key] = s;
+
+	printf('interface: %s\n  public key: %s\n  listening port: %s\n', name, wg.pub, wg.port);
+
+	for (let pr in wg.peers) {
+		let s = peers[pr.pub];
+		let label = s?.opts?.description ?? (s && !s.anon ? s.label : null) ?? '(no description)';
+
+		printf('\n  peer: %s', label);
+
+		if (s)
+			printf('  [network wireguard_%s %s]', name, s.label);
+		else
+			printf('  [not in UCI config]');
+
+		printf('\n    public key: %s\n', pr.pub);
+
+		if (pr.endpoint != '(none)')
+			printf('    endpoint: %s\n', pr.endpoint);
+
+		printf('    allowed ips: %s\n', join(', ', split(pr.allowed, ',')));
+		printf('    latest handshake: %s\n',
+			pr.handshake ? `${duration(now - pr.handshake)} ago` : 'never');
+		printf('    transfer: %s received, %s sent\n', human_bytes(pr.rx), human_bytes(pr.tx));
+
+		if (pr.keepalive != 'off')
+			printf('    persistent keepalive: every %s seconds\n', pr.keepalive);
+	}
+
+	print('\n');
+}

@@ -1,0 +1,11 @@
+#!/bin/sh
+# SPDX-License-Identifier: MIT
+# Test stub for `wg show all dump`: one interface, one active and one idle peer.
+
+[ "$*" = "show all dump" ] || exit 1
+
+now=$(date +%s)
+t=$(printf '\t')
+echo "wg0${t}PRIVATEKEY${t}SERVERPUBKEY=${t}51820${t}off"
+echo "wg0${t}LAPTOPPUBKEY=${t}(none)${t}203.0.113.5:40000${t}10.0.0.2/32,192.168.50.0/24${t}$((now - 65))${t}1258291${t}3565158${t}25"
+echo "wg0${t}PHONEPUBKEY=${t}(none)${t}(none)${t}10.0.0.3/32${t}0${t}0${t}0${t}off"

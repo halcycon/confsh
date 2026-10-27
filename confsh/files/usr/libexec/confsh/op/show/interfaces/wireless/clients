@@ -1,0 +1,53 @@
+#!/usr/bin/ucode -S
+// SPDX-License-Identifier: MIT
+// show interfaces wireless clients: associated stations with DHCP names
+
+import * as fs from 'fs';
+import { fail, str, table, duration, ubus_call } from 'confsh.util';
+
+let st = ubus_call('network.wireless', 'status');
+
+if (!st)
+	fail('show interfaces wireless clients: no wireless radios (netifd reports none)');
+
+let leases = {};
+let lf = require('uci').cursor().get_first('dhcp', 'dnsmasq', 'leasefile') ?? '/tmp/dhcp.leases';
+
+for (let line in split(fs.readfile(lf) ?? '', '\n')) {
+	let f = split(line, ' ');
+
+	if (length(f) >= 4)
+		leases[lc(f[1])] = { ip: f[2], host: (f[3] == '*') ? '-' : f[3] };
+}
+
+function rate(r) {
+	return r?.rate ? sprintf('%.1f Mbit/s', r.rate / 1000.0) : '-';
+}
+
+let rows = [];
+
+for (let radio in sort(keys(st))) {
+	for (let i in st[radio].interfaces ?? []) {
+		if (!i.ifname)
+			continue;
+
+		for (let c in ubus_call('iwinfo', 'assoclist', { device: i.ifname })?.results ?? []) {
+			let l = leases[lc(c.mac)];
+
+			push(rows, [
+				i.ifname, str(i.config?.ssid), lc(c.mac),
+				(c.signal != null) ? `${c.signal} dBm` : '-',
+				rate(c.rx), rate(c.tx),
+				(c.connected_time != null) ? duration(c.connected_time) : '-',
+				str(l?.ip), str(l?.host)
+			]);
+		}
+	}
+}
+
+if (!length(rows)) {
+	print('No wireless clients connected\n');
+	exit(0);
+}
+
+table([ 'Interface', 'SSID', 'MAC address', 'Signal', 'RX rate', 'TX rate', 'Connected', 'IP address', 'Hostname' ], rows);

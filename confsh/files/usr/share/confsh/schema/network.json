@@ -23,9 +23,25 @@
 			"macaddr": {},
 			"hostname": {},
 			"username": {},
-			"password": {},
+			"password": { "secret": true },
 			"reqaddress": { "values": [ "try", "force", "none" ] },
-			"reqprefix": {}
+			"reqprefix": {},
+			"private_key": { "secret": true },
+			"listen_port": {},
+			"addresses": { "list": true },
+			"fwmark": {},
+			"nohostroute": { "type": "bool" }
+		},
+		"wireguard_*": {
+			"description": {},
+			"public_key": {},
+			"preshared_key": { "secret": true },
+			"allowed_ips": { "list": true },
+			"route_allowed_ips": { "type": "bool" },
+			"endpoint_host": {},
+			"endpoint_port": {},
+			"persistent_keepalive": {},
+			"disabled": { "type": "bool" }
 		},
 		"device": {
 			"name": {},
@@ -42,7 +58,8 @@
 		"bridge-vlan": {
 			"device": {},
 			"vlan": {},
-			"ports": { "list": true }
+			"ports": { "list": true },
+			"local": { "type": "bool" }
 		},
 		"route": {
 			"interface": {},

@@ -1,0 +1,28 @@
+#!/bin/sh
+# SPDX-License-Identifier: MIT
+# Test stub for the `ubus call` objects used by the wireless op commands.
+
+[ "$1" = call ] || exit 1
+
+case "$2 $3" in
+"network.wireless status")
+	cat <<'EOF'
+{ "radio0": { "up": true, "disabled": false,
+    "config": { "band": "2g", "channel": "auto", "htmode": "HE20" },
+    "interfaces": [ { "section": "default_radio0", "ifname": "phy0-ap0",
+      "config": { "mode": "ap", "ssid": "HomeNet", "network": [ "lan" ] } } ] } }
+EOF
+	;;
+"iwinfo info")
+	echo '{ "channel": 6, "frequency": 2437 }'
+	;;
+"iwinfo assoclist")
+	cat <<'EOF'
+{ "results": [ { "mac": "AA:BB:CC:00:11:22", "signal": -52, "connected_time": 3725,
+    "rx": { "rate": 86700 }, "tx": { "rate": 144400 } } ] }
+EOF
+	;;
+*)
+	exit 4
+	;;
+esac

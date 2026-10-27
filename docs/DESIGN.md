@@ -256,26 +256,89 @@ passed as arguments. Completion lists directory entries. Any package
 can add commands, e.g. `kmod-octeon-flowtable` could ship
 `op/show/offload` without confsh depending on it.
 
-Shipped in v0.1: `show configuration [commands]`, `show system commit`,
+Shipped: `show configuration [commands]`, `show system commit`,
 `show interfaces`, `show ip route`, `show arp`, `show dhcp leases`,
-`show nat translations`, `show version`.
+`show nat translations`, `show version` (v0.1); `show interfaces
+wireguard`, `show interfaces wireless [clients]`, `show firewall
+[zones|forwardings|rules]`, `show nat rules` (v0.2).
 
-## Dialect layer (later)
+Op commands that read live state use the `ubus` and `wg` CLIs (not the
+ucode ubus binding) so tests can stub them (`tests/stubs/`).
 
-Optional modules mapping EdgeOS paths to UCI for common trees:
+### Secrets
 
-| EdgeOS tree | UCI |
-|-------------|-----|
-| `interfaces ethernet/bridge/vif` | `network` device + interface |
-| `firewall name … rule N`, `firewall group` | `firewall` rule/zone/ipset |
-| `service nat rule N` | `firewall` redirect / nat |
-| `service dhcp-server shared-network-name …` | `dhcp` dhcp/host |
-| `protocols static route` | `network` route |
-| `system host-name / time-zone / ntp / login` | `system` |
+Schema hints can mark options `"secret": true` (WireGuard keys, Wi-Fi
+keys, PPPoE passwords). Their values are rendered as `********` in
+`show`, `compare` and `show configuration [commands]`, and are not
+offered by `delete` completion; `CONFSH_SHOW_SECRETS=1` disables
+masking. Values are stored as typed (UCI has no hashing).
 
-Plus an importer for an EdgeOS `config.boot` (parse → dialect → staged
-UCI changes → `compare` → `commit`). Exact mappings will be driven by
-real configs from testers.
+## Dialect layer (EdgeOS paths)
+
+Tester priorities (from the original octeon-flowtable author), in
+order: WireGuard; DNAT / port-forwards; firewall rules + zone
+forwardings; VLAN interfaces (vif-style); Wi-Fi.
+
+v0.2 covers all five in the generic layer (schema hints, status
+commands, cheat sheet). Firewall zones/forwardings and Wi-Fi have no
+EdgeOS equivalent worth emulating (EdgeOS has no zones and no radios),
+so they stay UCI-native. The dialect layer targets the three where
+EdgeOS syntax is genuinely nicer:
+
+**WireGuard** — peers keyed by public key, as on EdgeOS:
+
+```text
+set interfaces wireguard wg0 address 10.0.0.1/24        → network.wg0 proto=wireguard, addresses
+set interfaces wireguard wg0 listen-port 51820          → network.wg0.listen_port
+set interfaces wireguard wg0 private-key <key>          → network.wg0.private_key
+set interfaces wireguard wg0 peer <pub> allowed-ips X   → wireguard_wg0 section with public_key=<pub>
+set interfaces wireguard wg0 peer <pub> description D   →   … .description
+set interfaces wireguard wg0 peer <pub> endpoint H:P    →   … .endpoint_host / endpoint_port
+set interfaces wireguard wg0 peer <pub> persistent-keepalive N
+set interfaces wireguard wg0 route-allowed-ips true     → route_allowed_ips=1 on every peer
+delete interfaces wireguard wg0 peer <pub>              → delete that section
+```
+
+The peer section is found by `public_key` (named or anonymous); new
+ones are named `peer_<first 8 key chars, alnum>`. Completion offers
+peer keys annotated with descriptions.
+
+**Port forwards / DNAT**:
+
+```text
+set port-forward rule 1 description NAS     → firewall redirect pf_1: name
+set port-forward rule 1 original-port 443   →   src_dport
+set port-forward rule 1 protocol tcp_udp    →   proto tcpudp
+set port-forward rule 1 forward-to address  →   dest_ip
+set port-forward rule 1 forward-to port     →   dest_port
+set port-forward wan-interface eth0         → src zone = zone containing eth0's interface
+set port-forward lan-interface eth1         → dest zone, likewise
+set port-forward hairpin-nat enable         → reflection=1 on all pf_* redirects
+set service nat rule N type destination …   → same redirect mapping, inbound-interface → src zone
+```
+
+**vif VLANs** (802.1Q on a plain NIC):
+
+```text
+set interfaces ethernet eth1 vif 10 address 192.168.20.1/24
+  → network device eth1_10 (type 8021q, ifname eth1, vid 10, name eth1.10)
+  → network interface eth1_10 (device eth1.10, proto static, ipaddr/netmask)
+set interfaces ethernet eth1 vif 10 address dhcp → proto dhcp
+set interfaces ethernet eth1 vif 10 description X → kept as a comment option
+```
+
+DSA switch ports (`bridge-vlan`) have no EdgeOS vif equivalent and
+stay UCI-native.
+
+Implementation: top-level words that are not UCI config names
+(`interfaces`, `port-forward`, `service`) dispatch to dialect modules
+under `/usr/share/ucode/confsh/dialect/`, which translate each command
+into generic-layer operations and render `show` in EdgeOS form. Both
+syntaxes stay available; the dialect never stores state outside UCI.
+
+Later: an importer for an EdgeOS `config.boot` (parse → dialect →
+staged UCI changes → `compare` → `commit`), driven by real tester
+configs.
 
 ## Packaging and distribution
 
@@ -308,7 +371,10 @@ package with the 25.12 (apk) and 24.10 (ipk) SDKs. Hardware testing
 
 1. **v0.1 generic layer** — modes, set/delete/edit/show/compare/commit,
    commit-confirm, archive/rollback, completion, op plugins, tests, CI.
-2. **v0.2** — `load`/`merge`/`save <file>` (diff engine: make working
-   config equal a target), `show … | commands`, inline help (`?`).
-3. **v0.3+** — EdgeOS dialect modules and `config.boot` importer, driven
-   by tester configs.
+2. **v0.2 tester priorities, generic layer** — WireGuard, port-forward,
+   firewall, wireless status commands; schema hints (WireGuard peers,
+   Wi-Fi, DSA VLANs); secret masking; cheat-sheet sections.
+3. **v0.3 dialect** — EdgeOS paths for WireGuard, then port-forward /
+   DNAT, then vif VLANs (order per tester feedback).
+4. **v0.4+** — `load`/`merge`/`save <file>` (diff engine), inline help
+   (`?`), firewall rule counters, `config.boot` importer.

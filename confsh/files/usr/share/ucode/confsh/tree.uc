@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 'use strict';
 
-import { fail, as_list, q_curly, q_shell } from 'confsh.util';
+import { fail, as_list, q_curly, q_shell, shown } from 'confsh.util';
 
 /*
  * A config is an ordered list of sections:
@@ -182,11 +182,15 @@ export function show(ctx, words, markers) {
 		push(out, (markers ? ((m == '') ? ' ' : m) : '') + pad(depth) + text);
 	}
 
-	function emit_section(m, depth, head) {
+	function opt_text(cfg, m, l) {
+		return `${l[1]} ${q_curly(shown(cfg, m.sec.type, l[1], l[2]))}`;
+	}
+
+	function emit_section(cfg, m, depth, head) {
 		emit(m.state, depth, `${head} {`);
 
 		for (let l in opt_lines(m))
-			emit(l[0], depth + 1, `${l[1]} ${q_curly(l[2])}`);
+			emit(l[0], depth + 1, opt_text(cfg, m, l));
 
 		emit(m.state, depth, '}');
 	}
@@ -198,7 +202,7 @@ export function show(ctx, words, markers) {
 			if (stype != null && m.sec.type != stype)
 				continue;
 
-			emit_section(m, depth, (stype != null) ? m.sec.label : `${m.sec.type} ${m.sec.label}`);
+			emit_section(cfg, m, depth, (stype != null) ? m.sec.label : `${m.sec.type} ${m.sec.label}`);
 		}
 	}
 
@@ -241,7 +245,7 @@ export function show(ctx, words, markers) {
 
 			for (let l in opt_lines(m))
 				if (n == 3 || l[1] == words[3])
-					emit(l[0], 0, `${l[1]} ${q_curly(l[2])}`);
+					emit(l[0], 0, opt_text(words[0], m, l));
 		}
 	}
 
@@ -260,12 +264,14 @@ export function compare(ctx, cfgs) {
 		let pair = ctx.get(cfg);
 
 		for (let m in merge_secs(pair.old, pair.cur)) {
+			let val = (opt, v) => q_curly(shown(cfg, m.sec.type, opt, v));
+
 			if (m.state != '') {
 				push(out, `[edit ${cfg} ${m.sec.type}]`);
 				push(out, `${m.state}${m.sec.label} {`);
 
 				for (let l in opt_lines(m))
-					push(out, `${m.state}    ${l[1]} ${q_curly(l[2])}`);
+					push(out, `${m.state}    ${l[1]} ${val(l[1], l[2])}`);
 
 				push(out, `${m.state}}`);
 				continue;
@@ -280,11 +286,11 @@ export function compare(ctx, cfgs) {
 
 			for (let l in lines) {
 				if (l[0] == '>') {
-					push(out, `-${l[1]} ${q_curly(m.old.opts[l[1]])}`);
-					push(out, `+${l[1]} ${q_curly(l[2])}`);
+					push(out, `-${l[1]} ${val(l[1], m.old.opts[l[1]])}`);
+					push(out, `+${l[1]} ${val(l[1], l[2])}`);
 				}
 				else {
-					push(out, `${l[0]}${l[1]} ${q_curly(l[2])}`);
+					push(out, `${l[0]}${l[1]} ${val(l[1], l[2])}`);
 				}
 			}
 		}
@@ -313,7 +319,7 @@ export function commands(ctx, words) {
 
 			for (let k in sort(keys(s.opts)))
 				for (let v in as_list(s.opts[k]))
-					push(out, `${prefix} ${k} ${q_shell(v)}`);
+					push(out, `${prefix} ${k} ${q_shell(shown(cfg, s.type, k, v))}`);
 		}
 	}
 

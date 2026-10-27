@@ -49,7 +49,7 @@ OpenWrt 25.12 and newer (apk):
 
 ```sh
 cd /tmp
-wget -O confsh.apk https://github.com/halcycon/confsh/releases/download/v0.1.1/confsh-0.1.1-r1.apk
+wget -O confsh.apk https://github.com/halcycon/confsh/releases/download/v0.2.0/confsh-0.2.0-r1.apk
 apk update
 apk add --allow-untrusted ./confsh.apk
 ```
@@ -58,7 +58,7 @@ OpenWrt 24.10 (opkg):
 
 ```sh
 cd /tmp
-wget -O confsh.ipk https://github.com/halcycon/confsh/releases/download/v0.1.1/confsh_0.1.1-r1_all.ipk
+wget -O confsh.ipk https://github.com/halcycon/confsh/releases/download/v0.2.0/confsh_0.2.0-r1_all.ipk
 opkg update
 opkg install ./confsh.ipk
 ```
@@ -87,7 +87,7 @@ always created with a name. See the
 
 | Mode | Commands |
 |------|----------|
-| Operational | `configure`, `show configuration [commands]`, `show system commit`, `show interfaces`, `show ip route`, `show arp`, `show dhcp leases`, `show nat translations`, `show version` |
+| Operational | `configure`, `show configuration [commands]`, `show system commit`, `show interfaces [wireguard \| wireless [clients]]`, `show firewall [zones\|forwardings\|rules]`, `show nat rules`, `show nat translations`, `show ip route`, `show arp`, `show dhcp leases`, `show version` |
 | Configuration | `set`, `delete`, `edit`, `up`, `top`, `show`, `compare`, `discard`, `commit [comment …]`, `commit-confirm [min]`, `confirm`, `rollback N`, `run <op command>`, `exit [discard]` |
 
 Things that differ from EdgeOS:
@@ -97,6 +97,8 @@ Things that differ from EdgeOS:
 - `commit-confirm` reverts by restoring the previous config files and
   reloading services, not by rebooting. If the router reboots before you
   `confirm`, the change is reverted at boot before the network comes up.
+- Keys and passwords are shown as `********` in `show`/`compare` output
+  (set `CONFSH_SHOW_SECRETS=1` to see them), so output is safe to paste.
 - Uncommitted changes made with the `uci` command (`/tmp/.uci`) are
   visible inside confsh. confsh warns about them and won't commit the same
   config until they're committed or reverted, or you use `commit force`.

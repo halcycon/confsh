@@ -52,11 +52,14 @@
 			"dest": {},
 			"proto": { "values": [ "tcp", "udp", "tcpudp", "icmp", "all" ] },
 			"src_ip": {},
+			"src_dip": {},
 			"src_dport": {},
 			"dest_ip": {},
 			"dest_port": {},
+			"family": { "values": [ "ipv4", "ipv6", "any" ] },
 			"target": { "values": [ "DNAT", "SNAT" ] },
 			"reflection": { "type": "bool" },
+			"reflection_src": { "values": [ "internal", "external" ] },
 			"enabled": { "type": "bool" }
 		},
 		"nat": {

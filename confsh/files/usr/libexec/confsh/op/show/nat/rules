@@ -1,0 +1,52 @@
+#!/usr/bin/ucode -S
+// SPDX-License-Identifier: MIT
+// show nat rules: port forwards (DNAT), SNAT rules and masquerading zones.
+
+import { str, table } from 'confsh.util';
+import * as tree from 'confsh.tree';
+
+let secs = tree.load(require('uci').cursor(), 'firewall') ?? [];
+let enabled = s => (s.opts.enabled == '0') ? 'no' : 'yes';
+let hostport = (ip, port) => (port != null) ? `${ip ?? '*'}:${port}` : (ip ?? '*');
+
+let fwd = [];
+
+for (let s in secs) {
+	if (s.type != 'redirect')
+		continue;
+
+	push(fwd, [
+		`redirect ${s.label}`, str(s.opts.name), str(s.opts.target ?? 'DNAT'), str(s.opts.proto),
+		`${s.opts.src ?? '*'} ${hostport(s.opts.src_dip, s.opts.src_dport)}`,
+		`${s.opts.dest ?? '*'} ${hostport(s.opts.dest_ip, s.opts.dest_port)}`,
+		enabled(s)
+	]);
+}
+
+print('Port forwards / redirects\n');
+
+if (length(fwd))
+	table([ 'Section', 'Name', 'Target', 'Proto', 'From (zone addr:port)', 'To (zone addr:port)', 'Enabled' ], fwd);
+else
+	print('(none)\n');
+
+let snat = [];
+
+for (let s in secs) {
+	if (s.type != 'nat')
+		continue;
+
+	push(snat, [
+		`nat ${s.label}`, str(s.opts.name), str(s.opts.target), str(s.opts.src),
+		str(s.opts.src_ip), str(s.opts.dest_ip), str(s.opts.snat_ip), enabled(s)
+	]);
+}
+
+if (length(snat)) {
+	print('\nSNAT rules\n');
+	table([ 'Section', 'Name', 'Target', 'Zone', 'Source', 'Destination', 'Rewrite to', 'Enabled' ], snat);
+}
+
+let masq = map(filter(secs, s => s.type == 'zone' && s.opts.masq == '1'), s => s.opts.name ?? s.label);
+
+printf('\nMasquerading zones: %s\n', length(masq) ? join(', ', masq) : '(none)');

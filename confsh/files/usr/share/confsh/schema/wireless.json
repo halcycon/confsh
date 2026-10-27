@@ -1,0 +1,37 @@
+{
+	"wireless": {
+		"wifi-device": {
+			"type": {},
+			"path": {},
+			"band": { "values": [ "2g", "5g", "6g", "60g" ] },
+			"channel": { "values": [ "auto" ] },
+			"htmode": { "values": [ "HT20", "HT40", "VHT20", "VHT40", "VHT80", "VHT160", "HE20", "HE40", "HE80", "HE160", "EHT20", "EHT40", "EHT80", "EHT160", "EHT320" ] },
+			"country": {},
+			"txpower": {},
+			"cell_density": { "values": [ "0", "1", "2", "3" ] },
+			"noscan": { "type": "bool" },
+			"disabled": { "type": "bool" }
+		},
+		"wifi-iface": {
+			"device": {},
+			"network": { "list": true },
+			"mode": { "values": [ "ap", "sta", "mesh", "adhoc", "monitor" ] },
+			"ssid": {},
+			"encryption": { "values": [ "none", "owe", "psk", "psk2", "psk-mixed", "sae", "sae-mixed", "wpa2", "wpa3", "wpa3-mixed" ] },
+			"key": { "secret": true },
+			"sae_password": { "secret": true },
+			"password": { "secret": true },
+			"auth_secret": { "secret": true },
+			"hidden": { "type": "bool" },
+			"isolate": { "type": "bool" },
+			"wmm": { "type": "bool" },
+			"ieee80211r": { "type": "bool" },
+			"ieee80211w": { "values": [ "0", "1", "2" ] },
+			"macfilter": { "values": [ "disable", "allow", "deny" ] },
+			"maclist": { "list": true },
+			"mesh_id": {},
+			"ifname": {},
+			"disabled": { "type": "bool" }
+		}
+	}
+}

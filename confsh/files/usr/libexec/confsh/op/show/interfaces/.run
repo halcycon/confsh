@@ -2,6 +2,11 @@
 // SPDX-License-Identifier: MIT
 // show interfaces: logical interfaces with device, protocol, state, addresses
 
+if (length(ARGV)) {
+	warn(`Invalid command: show interfaces ${ARGV[0]}\n`);
+	exit(1);
+}
+
 let conn = require('ubus').connect();
 let dump = conn?.call('network.interface', 'dump');
 
