@@ -10,6 +10,7 @@ import {
 import * as tree from 'confsh.tree';
 import * as archive from 'confsh.archive';
 import * as complete from 'confsh.complete';
+import * as dialect from 'confsh.dialect';
 
 let uci = require('uci');
 
@@ -155,6 +156,11 @@ function cmd_set(args) {
 	let w = [ ...level(), ...args ];
 	let n = length(w);
 
+	if (dialect.claims(w)) {
+		dialect.set(working(s), w);
+		return 0;
+	}
+
 	if (n < 3)
 		fail('Incomplete path: set <config> <section-type> <section> [<option> <value>]');
 
@@ -208,6 +214,11 @@ function cmd_delete(args) {
 	let s = session(true);
 	let w = [ ...level(), ...args ];
 	let n = length(w);
+
+	if (dialect.claims(w)) {
+		dialect.del(working(s), w);
+		return 0;
+	}
 
 	if (n == 0)
 		fail('Incomplete path: delete <config> <section-type> [<section> [<option> [<value>]]]');
@@ -276,6 +287,12 @@ function cmd_edit(args) {
 	let s = session(true);
 	let w = [ ...level(), ...args ];
 
+	if (dialect.claims(w)) {
+		dialect.edit(working(s), w);
+		print(join(' ', w), '\n');
+		return 0;
+	}
+
 	if (length(w) > 3)
 		fail('Cannot edit below section level; use set/delete for options');
 
@@ -297,8 +314,12 @@ function cmd_edit(args) {
 
 function cmd_show(args) {
 	let s = session(true);
+	let w = [ ...level(), ...args ];
 
-	tree.show(view(committed(), working(s)), [ ...level(), ...args ], true);
+	if (dialect.claims(w))
+		dialect.show(committed(), working(s), w, true);
+	else
+		tree.show(view(committed(), working(s)), w, true);
 
 	return 0;
 }
@@ -492,13 +513,22 @@ function cmd_save(args) {
 function cmd_show_config(args) {
 	let c = committed();
 	let v = view(c, c);
+	let cmds = (args[0] == 'commands');
+	let w = cmds ? slice(args, 1) : args;
 
-	if (args[0] == 'commands') {
-		for (let line in tree.commands(v, slice(args, 1)))
+	if (dialect.claims(w)) {
+		if (cmds)
+			for (let line in dialect.commands(c, w))
+				print(line, '\n');
+		else
+			dialect.show(c, c, w, false);
+	}
+	else if (cmds) {
+		for (let line in tree.commands(v, w))
 			print(line, '\n');
 	}
 	else {
-		tree.show(v, args, false);
+		tree.show(v, w, false);
 	}
 
 	return 0;
@@ -567,9 +597,16 @@ function cmd_complete(args) {
 	}
 	else if (index([ 'set', 'delete', 'edit', 'show' ], ctx) >= 0) {
 		let s = session(false);
+		let w = [ ...level(), ...words ];
 
-		if (s)
-			cand = complete.config_path(ctx, [ ...level(), ...words ], cur, working(s));
+		if (s && dialect.claims(w))
+			cand = dialect.complete(w, cur, working(s));
+		else if (s) {
+			cand = complete.config_path(ctx, w, cur, working(s));
+
+			if (!length(w))
+				cand = sort([ ...cand, ...filter(dialect.roots(), r => index(cand, r) < 0) ]);
+		}
 	}
 
 	for (let c in cand)

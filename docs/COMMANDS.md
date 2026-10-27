@@ -68,6 +68,40 @@ edit network interface lan
 set ipaddr 10.0.0.1
 ```
 
+## EdgeOS paths
+
+Some areas also accept EdgeOS's own syntax. Both forms change the same
+UCI config, so you can mix them freely. Supported so far:
+
+**`port-forward`** (stored as firewall redirects named `pf_<rule>`):
+
+```text
+set port-forward wan-interface eth0          # device, interface or zone; default zone wan
+set port-forward lan-interface eth1          # default zone lan
+set port-forward hairpin-nat enable          # reflection on every pf_ rule
+set port-forward auto-firewall enable        # accepted; fw4 always allows DNAT'd traffic
+set port-forward rule 1 description "NAS HTTPS"
+set port-forward rule 1 original-port 443    # also ranges: 8000-8010
+set port-forward rule 1 protocol tcp         # tcp | udp | tcp_udp (default)
+set port-forward rule 1 forward-to address 192.168.1.10
+set port-forward rule 1 forward-to port 8443 # defaults to original-port
+delete port-forward rule 1
+```
+
+`show port-forward` (configuration mode) and
+`show configuration [commands] port-forward` (operational mode) display
+it in EdgeOS form. `edit port-forward rule 1` works as on EdgeOS. Port
+forwards created in LuCI don't appear here, but they are still listed by
+`show nat rules` and editable as `firewall redirect …`.
+
+Interface names map to firewall zones: `wan-interface eth0` uses the
+zone containing the network interface whose device is `eth0`.
+
+Next up: `service nat` and `interfaces ethernet … vif` (confsh), and
+`interfaces wireguard`, `vpn ipsec`, `interfaces openvpn` and
+`interfaces tunnel` (contributed). Module authors: see
+[DIALECTS.md](DIALECTS.md).
+
 ## Configuration mode
 
 | Command | What it does |
@@ -208,7 +242,7 @@ OpenWrt's DHCP range is `start` (offset in the subnet) plus `limit`
 |--------|--------|
 | `set protocols static route 10.0.0.0/8 next-hop 192.168.10.254` | `set network route corp interface lan`<br>`set network route corp target 10.0.0.0`<br>`set network route corp netmask 255.0.0.0`<br>`set network route corp gateway 192.168.10.254` |
 | `set service nat rule 5010 outbound-interface eth0`<br>`set service nat rule 5010 type masquerade` | `set firewall zone @1 masq 1` (zone `@1` is `wan` on a stock config) |
-| `set port-forward rule 1 original-port 443`<br>`set port-forward rule 1 forward-to address 192.168.10.10` | `set firewall redirect nas_https name NAS-HTTPS`<br>`set firewall redirect nas_https src wan`<br>`set firewall redirect nas_https proto tcp`<br>`set firewall redirect nas_https src_dport 443`<br>`set firewall redirect nas_https dest lan`<br>`set firewall redirect nas_https dest_ip 192.168.10.10`<br>`set firewall redirect nas_https dest_port 443`<br>`set firewall redirect nas_https target DNAT` |
+| `set port-forward rule 1 original-port 443`<br>`set port-forward rule 1 forward-to address 192.168.10.10` | Same EdgeOS syntax works as-is (see [EdgeOS paths](#edgeos-paths)). In UCI terms:<br>`set firewall redirect nas_https name NAS-HTTPS`<br>`set firewall redirect nas_https src wan`<br>`set firewall redirect nas_https proto tcp`<br>`set firewall redirect nas_https src_dport 443`<br>`set firewall redirect nas_https dest lan`<br>`set firewall redirect nas_https dest_ip 192.168.10.10`<br>`set firewall redirect nas_https dest_port 443`<br>`set firewall redirect nas_https target DNAT` |
 | `set firewall name WAN_LOCAL rule 20 action accept`<br>`… destination port 22`<br>`… protocol tcp` | `set firewall rule allow_ssh name Allow-SSH-WAN`<br>`set firewall rule allow_ssh src wan`<br>`set firewall rule allow_ssh proto tcp`<br>`set firewall rule allow_ssh dest_port 22`<br>`set firewall rule allow_ssh target ACCEPT` |
 
 OpenWrt's firewall is zone-based: rules say which zone traffic comes
@@ -294,9 +328,8 @@ equivalent; this is OpenWrt's own model. A `wifi-device` is a radio; a
 
 ## Not yet supported
 
-- EdgeOS-style paths (`interfaces ethernet eth0 …`) and importing an
-  EdgeOS `config.boot`. Planned; real configs from testers will shape the
-  mapping.
+- EdgeOS-style paths beyond `port-forward` (see
+  [EdgeOS paths](#edgeos-paths)), and importing an EdgeOS `config.boot`.
 - `load`, `merge`, `save <file>`, `rename`, `copy`, `comment` nodes.
 - `?` for inline help (use <kbd>Tab</kbd>).
 - Per-user permissions: confsh runs as the logged-in user (normally

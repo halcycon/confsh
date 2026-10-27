@@ -49,7 +49,7 @@ OpenWrt 25.12 and newer (apk):
 
 ```sh
 cd /tmp
-wget -O confsh.apk https://github.com/halcycon/confsh/releases/download/v0.2.0/confsh-0.2.0-r1.apk
+wget -O confsh.apk https://github.com/halcycon/confsh/releases/download/v0.3.0/confsh-0.3.0-r1.apk
 apk update
 apk add --allow-untrusted ./confsh.apk
 ```
@@ -58,7 +58,7 @@ OpenWrt 24.10 (opkg):
 
 ```sh
 cd /tmp
-wget -O confsh.ipk https://github.com/halcycon/confsh/releases/download/v0.2.0/confsh_0.2.0-r1_all.ipk
+wget -O confsh.ipk https://github.com/halcycon/confsh/releases/download/v0.3.0/confsh_0.3.0-r1_all.ipk
 opkg update
 opkg install ./confsh.ipk
 ```
@@ -78,12 +78,17 @@ configuration untouched.
 
 ## Commands
 
-Paths follow the UCI file layout, not EdgeOS's tree (yet):
+Paths follow the UCI file layout:
 `<config> <section-type> <section> <option> <value>`, for example
 `set firewall zone @1 masq 1` or `set network interface lan ipaddr 10.0.0.1`.
 `@N` is the N-th section of a type, as in `uci show`. New sections are
 always created with a name. See the
 [cheat sheet](docs/COMMANDS.md#edgeos-cheat-sheet) for EdgeOS equivalents.
+
+Some areas also accept EdgeOS's own syntax, starting with
+`port-forward` (`set port-forward rule 1 forward-to address …`). More
+are on the way: see [EdgeOS paths](docs/COMMANDS.md#edgeos-paths), and
+[DIALECTS.md](docs/DIALECTS.md) if you want to write one.
 
 | Mode | Commands |
 |------|----------|

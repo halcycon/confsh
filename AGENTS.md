@@ -21,7 +21,8 @@ consumes it as a submodule at `package/confsh`.
 | `confsh/files/usr/bin/confsh` | Launcher (interactive, one-shot, `-s` script mode) |
 | `confsh/files/usr/lib/confsh/confsh.bashrc` | bash front end: functions, prompt, completion |
 | `confsh/files/usr/libexec/confsh/backend` | ucode entry point |
-| `confsh/files/usr/share/ucode/confsh/` | backend modules (`cmd`, `tree`, `archive`, `complete`, `util`) |
+| `confsh/files/usr/share/ucode/confsh/` | backend modules (`cmd`, `tree`, `archive`, `complete`, `util`, `dialect`) |
+| `confsh/files/usr/share/ucode/confsh/dialect/` | EdgeOS-path modules (API: `docs/DIALECTS.md`) |
 | `confsh/files/usr/share/confsh/schema/` | schema hints (JSON) |
 | `confsh/files/usr/libexec/confsh/op/` | op-mode command tree |
 | `tests/` | container tests (`t-*.sh`), fixtures |
@@ -38,6 +39,10 @@ consumes it as a submodule at `package/confsh`.
 5. Every behaviour change gets a test in `tests/t-*.sh`; run
    `tests/run.sh` and shellcheck before committing.
 6. ucode style follows OpenWrt (tabs, `'use strict';`, SPDX headers).
+   ucode does not hoist function declarations: define before use.
+   Dialect modules are scripts ending in `return { … }` (no `export`).
+7. Dialect mounts are owned per `docs/DIALECTS.md`; VPN subtrees belong
+   to @packerlschupfer (issue #2), so don't implement them here.
 
 ## Do not commit
 

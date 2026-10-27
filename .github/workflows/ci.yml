@@ -25,6 +25,7 @@ jobs:
 
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
@@ -41,6 +42,7 @@ jobs:
   build:
     needs: [shellcheck, test]
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:

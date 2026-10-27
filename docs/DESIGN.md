@@ -330,11 +330,18 @@ set interfaces ethernet eth1 vif 10 description X → kept as a comment option
 DSA switch ports (`bridge-vlan`) have no EdgeOS vif equivalent and
 stay UCI-native.
 
-Implementation: top-level words that are not UCI config names
-(`interfaces`, `port-forward`, `service`) dispatch to dialect modules
-under `/usr/share/ucode/confsh/dialect/`, which translate each command
-into generic-layer operations and render `show` in EdgeOS form. Both
-syntaxes stay available; the dialect never stores state outside UCI.
+Implementation (v0.3, `confsh/dialect.uc`): paths whose first word is
+not a UCI config name dispatch to modules under
+`/usr/share/ucode/confsh/dialect/`. Modules mount grammar subtrees at
+path prefixes (`port-forward`, `interfaces wireguard`, …; parent words
+like `interfaces` are shared). The framework parses and validates,
+completes, and renders `show` / `show configuration [commands]` in
+EdgeOS form by diffing the module's render of the committed and working
+cursors. Modules translate parsed commands into UCI and keep no other
+state (globals go in `/etc/config/confsh`). Module API:
+[DIALECTS.md](DIALECTS.md). `port-forward` is the reference module;
+VPN subtrees are owned by @packerlschupfer
+([#2](https://github.com/halcycon/confsh/issues/2)).
 
 Later: an importer for an EdgeOS `config.boot` (parse → dialect →
 staged UCI changes → `compare` → `commit`), driven by real tester
@@ -374,7 +381,9 @@ package with the 25.12 (apk) and 24.10 (ipk) SDKs. Hardware testing
 2. **v0.2 tester priorities, generic layer** — WireGuard, port-forward,
    firewall, wireless status commands; schema hints (WireGuard peers,
    Wi-Fi, DSA VLANs); secret masking; cheat-sheet sections.
-3. **v0.3 dialect** — EdgeOS paths for WireGuard, then port-forward /
-   DNAT, then vif VLANs (order per tester feedback).
+3. **v0.3 dialect** — framework + `port-forward` (done); then
+   `service nat`, `interfaces ethernet … vif`. VPN subtrees
+   (`interfaces wireguard`, `vpn ipsec`, `interfaces openvpn`,
+   `interfaces tunnel`) contributed per #2.
 4. **v0.4+** — `load`/`merge`/`save <file>` (diff engine), inline help
    (`?`), firewall rule counters, `config.boot` importer.
