@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: GPL-2.0-only
+# SPDX-License-Identifier: MIT
 # Every example in docs/COMMANDS.md "EdgeOS cheat-sheet" must work on a
 # stock-layout config (stock dhcp/dropbear from the image).
 . /src/tests/lib.sh

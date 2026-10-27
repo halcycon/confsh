@@ -1,5 +1,5 @@
 #!/bin/sh
-# SPDX-License-Identifier: GPL-2.0-only
+# SPDX-License-Identifier: MIT
 # show dhcp leases: dnsmasq DHCPv4 leases
 
 leases=$(uci -q get dhcp.@dnsmasq[0].leasefile)

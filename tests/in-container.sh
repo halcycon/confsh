@@ -1,5 +1,5 @@
 #!/bin/sh
-# SPDX-License-Identifier: GPL-2.0-only
+# SPDX-License-Identifier: MIT
 # Test driver; runs inside the OpenWrt container (see run.sh).
 
 set -u

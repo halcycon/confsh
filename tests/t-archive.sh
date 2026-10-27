@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: GPL-2.0-only
+# SPDX-License-Identifier: MIT
 # Commit archive, rollback, commit-confirm (timeout, confirm, reboot).
 . /src/tests/lib.sh
 

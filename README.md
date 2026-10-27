@@ -49,7 +49,7 @@ OpenWrt 25.12 and newer (apk):
 
 ```sh
 cd /tmp
-wget -O confsh.apk https://github.com/halcycon/confsh/releases/download/v0.1.0/confsh-0.1.0-r1.apk
+wget -O confsh.apk https://github.com/halcycon/confsh/releases/download/v0.1.1/confsh-0.1.1-r1.apk
 apk update
 apk add --allow-untrusted ./confsh.apk
 ```
@@ -58,7 +58,7 @@ OpenWrt 24.10 (opkg):
 
 ```sh
 cd /tmp
-wget -O confsh.ipk https://github.com/halcycon/confsh/releases/download/v0.1.0/confsh_0.1.0-r1_all.ipk
+wget -O confsh.ipk https://github.com/halcycon/confsh/releases/download/v0.1.1/confsh_0.1.1-r1_all.ipk
 opkg update
 opkg install ./confsh.ipk
 ```
@@ -136,4 +136,4 @@ Needs podman or docker. See [AGENTS.md](AGENTS.md) for repo conventions.
 
 ## License
 
-GPL-2.0-only. See [LICENSE](LICENSE).
+MIT. See [LICENSE](LICENSE).

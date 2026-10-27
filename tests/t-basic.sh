@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: GPL-2.0-only
+# SPDX-License-Identifier: MIT
 # set / show / compare stage changes; commit writes them and archives.
 . /src/tests/lib.sh
 

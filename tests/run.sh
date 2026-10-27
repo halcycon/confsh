@@ -1,5 +1,5 @@
 #!/bin/sh
-# SPDX-License-Identifier: GPL-2.0-only
+# SPDX-License-Identifier: MIT
 # Runs tests/t-*.sh inside the official OpenWrt rootfs container.
 #   tests/run.sh [t-name ...]
 

@@ -1,5 +1,5 @@
 #!/bin/sh
-# SPDX-License-Identifier: GPL-2.0-only
+# SPDX-License-Identifier: MIT
 # show nat translations: connection tracking table
 
 if command -v conntrack >/dev/null 2>&1; then

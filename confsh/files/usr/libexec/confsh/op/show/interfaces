@@ -1,5 +1,5 @@
 #!/usr/bin/ucode -S
-// SPDX-License-Identifier: GPL-2.0-only
+// SPDX-License-Identifier: MIT
 // show interfaces: logical interfaces with device, protocol, state, addresses
 
 let conn = require('ubus').connect();

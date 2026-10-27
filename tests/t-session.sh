@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: GPL-2.0-only
+# SPDX-License-Identifier: MIT
 # exit/discard, LuCI isolation, concurrent-edit protection.
 . /src/tests/lib.sh
 

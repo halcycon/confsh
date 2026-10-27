@@ -1,6 +1,6 @@
 # confsh design
 
-> SPDX-License-Identifier: GPL-2.0-only
+> SPDX-License-Identifier: MIT
 
 `confsh` is an optional, EdgeOS/Vyatta-style configuration shell for
 OpenWrt. It sits on top of UCI: nothing about the router changes unless

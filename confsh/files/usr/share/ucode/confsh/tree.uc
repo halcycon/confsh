@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-2.0-only
+// SPDX-License-Identifier: MIT
 'use strict';
 
 import { fail, as_list, q_curly, q_shell } from 'confsh.util';

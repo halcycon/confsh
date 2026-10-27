@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: GPL-2.0-only
+# SPDX-License-Identifier: MIT
 # Anonymous (@N) and named sections, type checks, edit levels.
 . /src/tests/lib.sh
 

@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: GPL-2.0-only
+# SPDX-License-Identifier: MIT
 # Operational mode commands and tab completion.
 . /src/tests/lib.sh
 

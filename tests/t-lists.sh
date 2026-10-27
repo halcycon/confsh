@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: GPL-2.0-only
+# SPDX-License-Identifier: MIT
 # Multi-value options: set appends, delete <value> removes one item.
 . /src/tests/lib.sh
 

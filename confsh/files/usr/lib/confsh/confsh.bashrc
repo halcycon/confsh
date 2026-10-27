@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: GPL-2.0-only
+# SPDX-License-Identifier: MIT
 # shellcheck shell=bash
 #
 # confsh: EdgeOS/Vyatta-style configuration shell for OpenWrt UCI.

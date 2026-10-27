@@ -1,13 +1,13 @@
-# SPDX-License-Identifier: GPL-2.0-only
+# SPDX-License-Identifier: MIT
 
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=confsh
-PKG_VERSION:=0.1.0
+PKG_VERSION:=0.1.1
 PKG_RELEASE:=1
 
 PKG_MAINTAINER:=halcycon <adam@thecuckoocamp.co.uk>
-PKG_LICENSE:=GPL-2.0-only
+PKG_LICENSE:=MIT
 
 include $(INCLUDE_DIR)/package.mk
 

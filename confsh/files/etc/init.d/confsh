@@ -1,5 +1,5 @@
 #!/bin/sh /etc/rc.common
-# SPDX-License-Identifier: GPL-2.0-only
+# SPDX-License-Identifier: MIT
 # Reverts an unconfirmed commit-confirm after a reboot, before network and
 # firewall start, so power-cycling recovers from a lock-out.
 
