@@ -97,10 +97,43 @@ forwards created in LuCI don't appear here, but they are still listed by
 Interface names map to firewall zones: `wan-interface eth0` uses the
 zone containing the network interface whose device is `eth0`.
 
+**`interfaces openvpn`** (site-to-site, static key) → `config openvpn
+<name>` in `/etc/config/openvpn`:
+
+```text
+set interfaces openvpn vtun0 mode site-to-site
+set interfaces openvpn vtun0 local-address 10.9.8.1
+set interfaces openvpn vtun0 remote-address 10.9.8.2
+set interfaces openvpn vtun0 remote-host 203.0.113.9
+set interfaces openvpn vtun0 shared-secret-key-file /etc/openvpn/s2s.key
+set interfaces openvpn vtun0 encryption aes256
+set interfaces openvpn vtun0 hash sha256
+```
+
+`local-address`/`remote-address` become the openvpn `ifconfig` pair;
+`encryption`/`hash` map to `cipher`/`auth`. Needs the openvpn package
+(which provides `/etc/config/openvpn`). v1 covers site-to-site with a
+static key; client/server/TLS are not yet exposed.
+
+**`interfaces tunnel`** (GRE / GRE-bridge / IPIP) → a `network` tunnel
+interface plus a companion `<name>_net` static interface for the
+tunnel's own L3 address:
+
+```text
+set interfaces tunnel tun0 encapsulation gre
+set interfaces tunnel tun0 local-ip 192.0.2.1
+set interfaces tunnel tun0 remote-ip 203.0.113.1
+set interfaces tunnel tun0 address 10.0.0.1/30
+set interfaces tunnel tun0 mtu 1400
+```
+
+`encapsulation gre|gre-bridge|ipip` maps to `proto gre|gretap|ipip`;
+`local-ip`/`remote-ip` are the tunnel endpoints (`ipaddr`/`peeraddr`),
+and `address` is assigned via the companion interface (`device '@tun0'`).
+
 Next up: `service nat` and `interfaces ethernet … vif` (confsh), and
-`interfaces wireguard`, `vpn ipsec`, `interfaces openvpn` and
-`interfaces tunnel` (contributed). Module authors: see
-[DIALECTS.md](DIALECTS.md).
+`interfaces wireguard` and `vpn ipsec` (contributed). Module authors:
+see [DIALECTS.md](DIALECTS.md).
 
 ## Configuration mode
 
@@ -328,8 +361,9 @@ equivalent; this is OpenWrt's own model. A `wifi-device` is a radio; a
 
 ## Not yet supported
 
-- EdgeOS-style paths beyond `port-forward` (see
-  [EdgeOS paths](#edgeos-paths)), and importing an EdgeOS `config.boot`.
+- EdgeOS-style paths beyond `port-forward`, `interfaces openvpn` and
+  `interfaces tunnel` (see [EdgeOS paths](#edgeos-paths)), and importing
+  an EdgeOS `config.boot`.
 - `load`, `merge`, `save <file>`, `rename`, `copy`, `comment` nodes.
 - `?` for inline help (use <kbd>Tab</kbd>).
 - Per-user permissions: confsh runs as the logged-in user (normally
