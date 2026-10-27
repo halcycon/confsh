@@ -49,19 +49,22 @@ OpenWrt 25.12 and newer (apk):
 
 ```sh
 cd /tmp
-wget https://github.com/halcycon/confsh/releases/download/v0.1.0/confsh-0.1.0-r1.apk
+wget -O confsh.apk https://github.com/halcycon/confsh/releases/download/v0.1.0/confsh-0.1.0-r1.apk
 apk update
-apk add --allow-untrusted ./confsh-0.1.0-r1.apk
+apk add --allow-untrusted ./confsh.apk
 ```
 
 OpenWrt 24.10 (opkg):
 
 ```sh
 cd /tmp
-wget https://github.com/halcycon/confsh/releases/download/v0.1.0/confsh_0.1.0-r1_all.ipk
+wget -O confsh.ipk https://github.com/halcycon/confsh/releases/download/v0.1.0/confsh_0.1.0-r1_all.ipk
 opkg update
-opkg install ./confsh_0.1.0-r1_all.ipk
+opkg install ./confsh.ipk
 ```
+
+(`-O` matters: OpenWrt's `wget` otherwise names the file after GitHub's
+download redirect.)
 
 Then log in over SSH as usual and run `confsh`.
 
