@@ -13,6 +13,9 @@ The reference module is
 [`dialect/port_forward.uc`](../confsh/files/usr/share/ucode/confsh/dialect/port_forward.uc),
 with its test in
 [`tests/t-dialect-portforward.sh`](../tests/t-dialect-portforward.sh).
+[`dialect/nat.uc`](../confsh/files/usr/share/ucode/confsh/dialect/nat.uc)
+shows `check`, order-independent input (a neutral section until `type`
+is known), and rewriting a section from a type-neutral record.
 
 ## Where modules live
 
@@ -30,7 +33,7 @@ work, because modules are loaded with `require()`.
 return {
 	mounts: { 'interfaces wireguard': GRAMMAR },
 	set, del, render,
-	tags, suggest          // optional
+	check, tags, suggest   // optional
 };
 ```
 
@@ -41,7 +44,7 @@ Prefix ownership agreed so far:
 | Mount | Owner |
 |-------|-------|
 | `port-forward` | confsh |
-| `service nat` | confsh (planned) |
+| `service nat` | confsh |
 | `interfaces ethernet` (vif) | confsh (planned) |
 | `interfaces wireguard`, `interfaces openvpn`, `interfaces tunnel`, `vpn ipsec` | @packerlschupfer ([#2](https://github.com/halcycon/confsh/issues/2)) |
 
@@ -63,8 +66,8 @@ A mount node may itself be a tag node. `'interfaces wireguard': { tag:
 'name', children: { … } }` gives `interfaces wireguard wg0 …`.
 
 Built-in value types: `number`, `port` (also ranges), `ipv4`,
-`ipv4net`, `cidr`, `host`, `name`, `key` (base64 WireGuard key) and
-`text`. Values are validated before your module is called, and errors
+`ipv4net`, `ipv4match` (address or prefix, optionally `!`-negated),
+`cidr`, `host`, `name`, `key` (base64 WireGuard key) and `text`. Values are validated before your module is called, and errors
 are reported as `Invalid value 'x' for <word>: expected …`.
 
 ## Callbacks
@@ -115,6 +118,18 @@ remove (for multi-value nodes).
   unless `CONFSH_SHOW_SECRETS=1`. Return children in the order EdgeOS
   shows them (usually alphabetical); the framework keeps that order and
   diffs against the committed render to produce `+`/`-`/`>` markers.
+- **`check(ctx)`** *(optional)*: commit-time validation, the
+  equivalent of EdgeOS commit errors. Return a list of error strings
+  for configurations that `set` can't reject on its own: a value that
+  is only wrong in combination with another (a GCM cipher plus a hash),
+  or an incomplete object (a NAT rule without `type`). Each command is
+  checked alone, and the order varies, so use `check` rather than
+  failing in `set` when the problem may be fixed by a later command.
+  `ctx.cur` is the working config. The framework also checks the
+  committed config and blocks only errors that are new, so a problem
+  already committed (e.g. via `commit force`) doesn't block unrelated
+  changes. Prefix errors with the path, e.g.
+  `service nat rule 7: type must be set`.
 - **`tags(ctx, steps, key)`** *(optional)*: completion candidates for
   a tag value, e.g. existing rule numbers or peer keys.
 - **`suggest(ctx, steps, leaf)`** *(optional)*: completion candidates

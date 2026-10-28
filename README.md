@@ -85,9 +85,10 @@ Paths follow the UCI file layout:
 always created with a name. See the
 [cheat sheet](docs/COMMANDS.md#edgeos-cheat-sheet) for EdgeOS equivalents.
 
-Some areas also accept EdgeOS's own syntax, starting with
-`port-forward` (`set port-forward rule 1 forward-to address …`). More
-are on the way: see [EdgeOS paths](docs/COMMANDS.md#edgeos-paths), and
+Some areas also accept EdgeOS's own syntax: `port-forward`
+(`set port-forward rule 1 forward-to address …`) and `service nat`
+(`set service nat rule 5010 type masquerade`). More are on the way: see
+[EdgeOS paths](docs/COMMANDS.md#edgeos-paths), and
 [DIALECTS.md](docs/DIALECTS.md) if you want to write one.
 
 | Mode | Commands |

@@ -37,14 +37,14 @@ for (let s in secs) {
 		continue;
 
 	push(snat, [
-		`nat ${s.label}`, str(s.opts.name), str(s.opts.target), str(s.opts.src),
+		`nat ${s.label}`, str(s.opts.name), str(s.opts.target), str(s.opts.device ?? s.opts.src),
 		str(s.opts.src_ip), str(s.opts.dest_ip), str(s.opts.snat_ip), enabled(s)
 	]);
 }
 
 if (length(snat)) {
-	print('\nSNAT rules\n');
-	table([ 'Section', 'Name', 'Target', 'Zone', 'Source', 'Destination', 'Rewrite to', 'Enabled' ], snat);
+	print('\nSource NAT rules\n');
+	table([ 'Section', 'Name', 'Target', 'Out (zone/device)', 'Source', 'Destination', 'Rewrite to', 'Enabled' ], snat);
 }
 
 let masq = map(filter(secs, s => s.type == 'zone' && s.opts.masq == '1'), s => s.opts.name ?? s.label);

@@ -314,8 +314,23 @@ set port-forward rule 1 forward-to port     →   dest_port
 set port-forward wan-interface eth0         → src zone = zone containing eth0's interface
 set port-forward lan-interface eth1         → dest zone, likewise
 set port-forward hairpin-nat enable         → reflection=1 on all pf_* redirects
-set service nat rule N type destination …   → same redirect mapping, inbound-interface → src zone
 ```
+
+**`service nat`** (v0.4): `rule N` → firewall section `nat_<N>`.
+`type destination` → `redirect` (DNAT; `inbound-interface` → src zone,
+`inside-address` → dest_ip/dest_port, dest zone from the inside
+address's subnet); `type source|masquerade` → `nat` (SNAT/MASQUERADE,
+ACCEPT for `exclude`; `outbound-interface` → fw4 `device`, or `src`
+when it names a zone/interface). Rules without a `type` sit in a
+`confsh_nat` section (fw4 ignores unknown section types, but warns on
+unknown options, so no private options go on fw4 sections). Each change
+re-renders the section from a type-neutral record, preserving options
+set elsewhere (e.g. LuCI) while the fw4 section type is unchanged.
+
+**Commit-time checks.** Modules may export `check(ctx)`. `commit`
+blocks on problems present in the working config but not in the
+committed one, and warns about pre-existing ones; `commit force` skips
+checks.
 
 **vif VLANs** (802.1Q on a plain NIC):
 
@@ -381,8 +396,9 @@ package with the 25.12 (apk) and 24.10 (ipk) SDKs. Hardware testing
 2. **v0.2 tester priorities, generic layer** — WireGuard, port-forward,
    firewall, wireless status commands; schema hints (WireGuard peers,
    Wi-Fi, DSA VLANs); secret masking; cheat-sheet sections.
-3. **v0.3 dialect** — framework + `port-forward` (done); then
-   `service nat`, `interfaces ethernet … vif`. VPN subtrees
+3. **v0.3 dialect** — framework + `port-forward` (v0.3.0); `service nat`
+   and the commit-time `check` hook (v0.4); then
+   `interfaces ethernet … vif`. VPN subtrees
    (`interfaces wireguard`, `vpn ipsec`, `interfaces openvpn`,
    `interfaces tunnel`) contributed per #2.
 4. **v0.4+** — `load`/`merge`/`save <file>` (diff engine), inline help

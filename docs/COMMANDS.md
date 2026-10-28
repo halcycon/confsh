@@ -97,7 +97,61 @@ forwards created in LuCI don't appear here, but they are still listed by
 Interface names map to firewall zones: `wan-interface eth0` uses the
 zone containing the network interface whose device is `eth0`.
 
-Next up: `service nat` and `interfaces ethernet … vif` (confsh), and
+**`service nat`** (stored as firewall sections named `nat_<rule>`):
+
+```text
+set service nat rule 1 description "SSH to NAS"            # destination NAT (DNAT)
+set service nat rule 1 inbound-interface eth0
+set service nat rule 1 protocol tcp
+set service nat rule 1 destination port 2222
+set service nat rule 1 inside-address address 192.168.1.10
+set service nat rule 1 inside-address port 22
+set service nat rule 1 type destination
+
+set service nat rule 5000 outbound-interface eth0          # source NAT (SNAT)
+set service nat rule 5000 source address 192.168.1.0/24
+set service nat rule 5000 outside-address address 203.0.113.5
+set service nat rule 5000 type source
+
+set service nat rule 5010 outbound-interface eth0          # masquerade
+set service nat rule 5010 type masquerade
+
+set service nat rule 5001 destination address 10.0.0.0/8   # don't NAT VPN traffic
+set service nat rule 5001 exclude
+set service nat rule 5001 outbound-interface eth0
+set service nat rule 5001 type masquerade
+```
+
+Also available: `source address|port`, `destination address|port`,
+`outside-address port`, `protocol all|tcp|udp|tcp_udp|icmp`, `disable`,
+`log enable|disable`. Addresses may be prefixes and negated
+(`!10.0.0.0/8`). Commands can come in any order, including the output of
+`show configuration commands service nat`, which lists `type` last.
+
+How it maps to firewall4 (fw4), and where it differs from EdgeOS:
+
+- `type destination` becomes a `redirect`, and `inbound-interface`
+  becomes its source **zone**, because fw4 port forwards are per zone.
+  An interface or device is accepted and shown back as its zone
+  (`inbound-interface eth0` displays as `inbound-interface wan`). The
+  inside zone is worked out from `inside-address`.
+- `type source` / `masquerade` become a `nat` section. A device name in
+  `outbound-interface` matches that device exactly, as on EdgeOS; a zone
+  or network interface name selects the zone.
+- `exclude` becomes fw4's `ACCEPT` target. fw4 doesn't distinguish
+  source from masquerade there, so an excluded `type source` rule shows
+  back as `type masquerade`.
+- Protocol defaults to `tcp_udp` for destination rules and `all` for
+  source/masquerade (fw4's defaults).
+- Like EdgeOS, `commit` refuses incomplete rules: missing `type`,
+  `inbound-interface`/`outbound-interface`, `inside-address` or
+  `outside-address`, or ports with a protocol other than TCP/UDP.
+  Problems that are already committed are shown as warnings and don't
+  block other changes. `commit force` skips the checks.
+- NAT rules created in LuCI aren't shown here. `show nat rules` lists
+  everything.
+
+Next up: `interfaces ethernet … vif` (confsh), and
 `interfaces wireguard`, `vpn ipsec`, `interfaces openvpn` and
 `interfaces tunnel` (contributed). Module authors: see
 [DIALECTS.md](DIALECTS.md).
@@ -241,7 +295,7 @@ OpenWrt's DHCP range is `start` (offset in the subnet) plus `limit`
 | EdgeOS | confsh |
 |--------|--------|
 | `set protocols static route 10.0.0.0/8 next-hop 192.168.10.254` | `set network route corp interface lan`<br>`set network route corp target 10.0.0.0`<br>`set network route corp netmask 255.0.0.0`<br>`set network route corp gateway 192.168.10.254` |
-| `set service nat rule 5010 outbound-interface eth0`<br>`set service nat rule 5010 type masquerade` | `set firewall zone @1 masq 1` (zone `@1` is `wan` on a stock config) |
+| `set service nat rule 5010 outbound-interface eth0`<br>`set service nat rule 5010 type masquerade` | Same EdgeOS syntax works as-is (see [EdgeOS paths](#edgeos-paths)). The OpenWrt way: `set firewall zone @1 masq 1` (zone `@1` is `wan` on a stock config) |
 | `set port-forward rule 1 original-port 443`<br>`set port-forward rule 1 forward-to address 192.168.10.10` | Same EdgeOS syntax works as-is (see [EdgeOS paths](#edgeos-paths)). In UCI terms:<br>`set firewall redirect nas_https name NAS-HTTPS`<br>`set firewall redirect nas_https src wan`<br>`set firewall redirect nas_https proto tcp`<br>`set firewall redirect nas_https src_dport 443`<br>`set firewall redirect nas_https dest lan`<br>`set firewall redirect nas_https dest_ip 192.168.10.10`<br>`set firewall redirect nas_https dest_port 443`<br>`set firewall redirect nas_https target DNAT` |
 | `set firewall name WAN_LOCAL rule 20 action accept`<br>`… destination port 22`<br>`… protocol tcp` | `set firewall rule allow_ssh name Allow-SSH-WAN`<br>`set firewall rule allow_ssh src wan`<br>`set firewall rule allow_ssh proto tcp`<br>`set firewall rule allow_ssh dest_port 22`<br>`set firewall rule allow_ssh target ACCEPT` |
 
@@ -353,7 +407,7 @@ dnsmasq.
 
 ## Not yet supported
 
-- EdgeOS-style paths beyond `port-forward` (see
+- EdgeOS-style paths beyond `port-forward` and `service nat` (see
   [EdgeOS paths](#edgeos-paths)), and importing an EdgeOS `config.boot`.
 - `load`, `merge`, `save <file>`, `rename`, `copy`, `comment` nodes.
 - `?` for inline help (use <kbd>Tab</kbd>).

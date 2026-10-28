@@ -20,6 +20,7 @@ const TYPES = {
 	port:    [ /^[0-9]{1,5}(-[0-9]{1,5})?$/, 'a port or range (80, 8000-8010)' ],
 	ipv4:    [ /^([0-9]{1,3}\.){3}[0-9]{1,3}$/, 'an IPv4 address' ],
 	ipv4net: [ /^([0-9]{1,3}\.){3}[0-9]{1,3}\/[0-9]{1,2}$/, 'an IPv4 prefix (10.0.0.0/24)' ],
+	ipv4match: [ /^!?([0-9]{1,3}\.){3}[0-9]{1,3}(\/[0-9]{1,2})?$/, 'an IPv4 address or prefix, optionally negated (!10.0.0.0/8)' ],
 	cidr:    [ /^[0-9A-Fa-f:.]+\/[0-9]{1,3}$/, 'an IPv4/IPv6 prefix' ],
 	host:    [ /^[A-Za-z0-9.:_-]+$/, 'a hostname or address' ],
 	name:    [ /^[A-Za-z0-9_.-]+$/, 'a name (letters, digits, _ . -)' ],
@@ -68,7 +69,22 @@ function grammar() {
 	return root;
 }
 
-function check(type_or_values, v, what) {
+/* Distinct modules mounted at or below a grammar node. */
+function owners(node) {
+	if (node.owner)
+		return [ node.owner ];
+
+	let out = [];
+
+	for (let k in keys(node.children ?? {}))
+		for (let o in owners(node.children[k]))
+			if (index(out, o) < 0)
+				push(out, o);
+
+	return out;
+}
+
+function check_value(type_or_values, v, what) {
 	if (type(type_or_values) == 'array') {
 		if (index(type_or_values, v) < 0)
 			fail(`Invalid value '${v}' for ${what}: expected one of ${join(', ', type_or_values)}`);
@@ -154,7 +170,7 @@ function parse(words, allow_value) {
 			if (i + 1 >= length(words))
 				fail(`Configuration path: [${join(' ', words)}] requires a ${child.tag} after '${w}'`);
 
-			check(child.tag, words[++i], w);
+			check_value(child.tag, words[++i], w);
 			push(steps, { key: w, tag: words[i] });
 		}
 		else if (child.children) {
@@ -168,7 +184,7 @@ function parse(words, allow_value) {
 				res.value = words[++i];
 
 				if (allow_value)
-					check(child.values ?? child.type, res.value, w);
+					check_value(child.values ?? child.type, res.value, w);
 			}
 
 			if (i + 1 < length(words))
@@ -212,6 +228,33 @@ export function del(cur, words) {
 	run(cur, ctx => p.owner.del(ctx, p));
 };
 
+function check_all(cur) {
+	let ctx = make_ctx(cur);
+	let errors = [];
+
+	for (let mod in owners(grammar()))
+		if (mod.check)
+			for (let e in mod.check(ctx) ?? [])
+				push(errors, e);
+
+	return errors;
+}
+
+/*
+ * Commit-time validation via each module's check(ctx). Problems already in
+ * the committed config are reported separately so they don't block
+ * unrelated commits: { errors: [new…], existing: [old…] }.
+ */
+export function check(working_cur, committed_cur) {
+	let before = check_all(committed_cur);
+	let after = check_all(working_cur);
+
+	return {
+		errors: filter(after, e => index(before, e) < 0),
+		existing: filter(after, e => index(before, e) >= 0)
+	};
+};
+
 /* `edit` into a container; tag nodes are created like `set` would. */
 export function edit(cur, words) {
 	let p = parse(words, false);
@@ -223,20 +266,6 @@ export function edit(cur, words) {
 };
 
 /* ---- rendering ------------------------------------------------------- */
-
-function owners(node) {
-	if (node.owner)
-		return [ node.owner ];
-
-	let out = [];
-
-	for (let k in keys(node.children ?? {}))
-		for (let o in owners(node.children[k]))
-			if (index(out, o) < 0)
-				push(out, o);
-
-	return out;
-}
 
 /* Full EdgeOS-style tree: modules return top-level nodes, merged by name. */
 function render(cur) {
@@ -460,7 +489,17 @@ export function commands(cur, words) {
 
 /* ---- completion ------------------------------------------------------ */
 
-export function complete(words, cur_word, cur) {
+function uniq(list) {
+	let out = [];
+
+	for (let v in list ?? [])
+		if (index(out, v) < 0)
+			push(out, v);
+
+	return out;
+}
+
+function complete_raw(words, cur) {
 	let node = grammar();
 	let owner = null;
 	let steps = [];
@@ -498,4 +537,8 @@ export function complete(words, cur_word, cur) {
 	}
 
 	return sort(keys(node.children ?? {}));
+}
+
+export function complete(words, cur_word, cur) {
+	return uniq(complete_raw(words, cur));
 };

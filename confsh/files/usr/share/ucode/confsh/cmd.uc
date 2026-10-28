@@ -401,6 +401,14 @@ function do_commit(s, o, via) {
 		if (length(cli))
 			fail(`Commit refused: uncommitted 'uci' changes for ${join(', ', cli)} would be committed too.\n` +
 			     `Run 'uci commit' or 'uci revert' for ${join(', ', cli)} first, or 'commit force' to include them.`);
+
+		let chk = dialect.check(working(s), committed());
+
+		if (length(chk.errors))
+			fail(`Commit failed:\n  ${join('\n  ', chk.errors)}`);
+
+		if (length(chk.existing))
+			warn(`Warning: already in the committed configuration:\n  ${join('\n  ', chk.existing)}\n`);
 	}
 
 	archive.ensure_baseline();
