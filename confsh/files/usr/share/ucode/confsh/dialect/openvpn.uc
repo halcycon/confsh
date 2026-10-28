@@ -45,7 +45,8 @@ function ovpn_id(ctx, name, create) {
 		if (!create) ctx.fail(`Nothing to delete: openvpn ${name} does not exist`);
 		ctx.cur.set(CFG, name, 'openvpn');
 		ctx.cur.set(CFG, name, 'enabled', '1');
-		ctx.cur.set(CFG, name, 'dev', 'tun');
+		ctx.cur.set(CFG, name, 'dev', name);      // predictable device name (vtunN) for firewall zones
+		ctx.cur.set(CFG, name, 'dev_type', 'tun');
 		ctx.cur.set(CFG, name, 'proto', 'udp');
 	}
 	return name;
@@ -68,7 +69,7 @@ function set(ctx, p) {
 
 	switch (p.leaf) {
 	case 'mode':                   break;                               // site-to-site = static-key p2p, no directive
-	case 'device-type':            cur.set(CFG, id, 'dev', p.value); break;
+	case 'device-type':            cur.set(CFG, id, 'dev_type', p.value); break;
 	case 'local-address':          set_ifconfig(ctx, id, 'local', p.value); break;
 	case 'remote-address':         set_ifconfig(ctx, id, 'remote', p.value); break;
 	case 'local-port':             cur.set(CFG, id, 'port', p.value); break;
@@ -99,27 +100,40 @@ function del(ctx, p) {
 	case 'shared-secret-key-file': drop('secret'); break;
 	case 'encryption':             drop('cipher'); break;
 	case 'hash':                   drop('auth'); break;
-	case 'device-type':            cur.set(CFG, id, 'dev', 'tun'); break;
+	case 'device-type':            cur.set(CFG, id, 'dev_type', 'tun'); break;
 	case 'disable':                cur.set(CFG, id, 'enabled', '1'); break;
 	}
 	ctx.touch(CFG);
 }
 
+// A static-key site-to-site instance: a secret, and none of the TLS/client/
+// server/external-config markers that OpenWrt's sample instances carry.
+function is_s2s(o) {
+	return o.secret != null && o.client == null && o.config == null &&
+		o.tls_auth == null && o.tls_crypt == null &&
+		o.ca == null && o.cert == null && o.key == null &&
+		(o.mode == null || o.mode == 'p2p');
+}
+
 function render(ctx) {
 	let out = [];
 	for (let s in ctx.sections(CFG)) {
-		if (s.type != 'openvpn') continue;
+		if (s.type != 'openvpn' || !is_s2s(s.opts)) continue;
 		let o = s.opts;
 		let k = [];
-		// site-to-site when a static key is configured
 		push(k, { name: 'mode', value: 'site-to-site' });
-		if (o.dev != null && o.dev != 'tun') push(k, { name: 'device-type', value: o.dev });
+		if (o.dev_type != null && o.dev_type != 'tun') push(k, { name: 'device-type', value: o.dev_type });
 		let ic = split((type(o.ifconfig) == 'array' ? o.ifconfig[0] : o.ifconfig) ?? '', ' ');
 		if (ic[0]) push(k, { name: 'local-address', value: ic[0] });
 		if (ic[1]) push(k, { name: 'remote-address', value: ic[1] });
 		if (o.port != null) push(k, { name: 'local-port', value: o.port });
-		if (o.remote != null) push(k, { name: 'remote-host', value: (type(o.remote) == 'array') ? o.remote[0] : o.remote });
-		if (o.rport != null) push(k, { name: 'remote-port', value: o.rport });
+		let rport = o.rport;
+		if (o.remote != null) {
+			let f = split((type(o.remote) == 'array') ? o.remote[0] : o.remote, ' ');
+			push(k, { name: 'remote-host', value: f[0] });
+			if (f[1] != null && rport == null) rport = f[1];   // OpenWrt "host port" form
+		}
+		if (rport != null) push(k, { name: 'remote-port', value: rport });
 		if (o.secret != null) push(k, { name: 'shared-secret-key-file', value: o.secret });
 		if (o.cipher != null) push(k, { name: 'encryption', value: rev(ENC, o.cipher) });
 		if (o.auth != null) push(k, { name: 'hash', value: rev(HASH, o.auth) });

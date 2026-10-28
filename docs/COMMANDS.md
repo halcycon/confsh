@@ -111,9 +111,11 @@ set interfaces openvpn vtun0 hash sha256
 ```
 
 `local-address`/`remote-address` become the openvpn `ifconfig` pair;
-`encryption`/`hash` map to `cipher`/`auth`. Needs the openvpn package
-(which provides `/etc/config/openvpn`). v1 covers site-to-site with a
-static key; client/server/TLS are not yet exposed.
+`encryption`/`hash` map to `cipher`/`auth`; the device is named after the
+instance (`dev vtun0`) for predictable firewall zones. Needs the openvpn
+package (which provides `/etc/config/openvpn`). v1 covers site-to-site with
+a static key; client/server/TLS are not yet exposed. Note OpenVPN 2.6
+deprecates static-key mode and 2.7 removes it — prefer TLS for new tunnels.
 
 **`interfaces tunnel`** (GRE / GRE-bridge / IPIP) → a `network` tunnel
 interface plus a companion `<name>_net` static interface for the

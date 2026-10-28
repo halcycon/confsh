@@ -41,7 +41,7 @@ const GRAMMAR = {
 		'encapsulation': { values: keys(ENCAP) },
 		'local-ip': { type: 'ipv4' },
 		'remote-ip': { type: 'ipv4' },
-		'address': { type: 'cidr' },
+		'address': { type: 'ipv4net' },
 		'mtu': { type: 'number' },
 		'ttl': { type: 'number' }
 	}
@@ -51,6 +51,11 @@ function tun_id(ctx, name, create) {
 	let t = ctx.cur.get(CFG, name);
 	if (t != null && t != 'interface')
 		ctx.fail(`network section '${name}' exists but is a '${t}'`);
+	if (t == 'interface') {
+		let proto = ctx.cur.get(CFG, name, 'proto');
+		if (proto != null && index(PROTOS, proto) < 0)
+			ctx.fail(`interface '${name}' exists with proto '${proto}', not a tunnel`);
+	}
 	if (t == null) {
 		if (!create) ctx.fail(`Nothing to delete: interfaces tunnel ${name} does not exist`);
 		ctx.cur.set(CFG, name, 'interface');
@@ -103,9 +108,11 @@ function del(ctx, p) {
 		if (cur.get(CFG, net_id(name)) == null) ctx.fail('Nothing to delete: address is not set');
 		cur.delete(CFG, net_id(name));
 	}
+	else if (p.leaf == 'encapsulation') {
+		cur.set(CFG, id, 'proto', 'gre');   // never leave the interface with no protocol
+	}
 	else {
-		let opt = (p.leaf == 'local-ip') ? 'ipaddr' : (p.leaf == 'remote-ip') ? 'peeraddr' :
-			(p.leaf == 'encapsulation') ? 'proto' : p.leaf;
+		let opt = (p.leaf == 'local-ip') ? 'ipaddr' : (p.leaf == 'remote-ip') ? 'peeraddr' : p.leaf;
 		if (cur.get(CFG, id, opt) == null) ctx.fail(`Nothing to delete: ${p.leaf} is not set`);
 		cur.delete(CFG, id, opt);
 	}

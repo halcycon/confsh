@@ -24,7 +24,8 @@ contains "$out" "+encryption aes256"
 
 eq "$(uci get openvpn.vtun0)" "openvpn"
 eq "$(uci get openvpn.vtun0.enabled)" "1"
-eq "$(uci get openvpn.vtun0.dev)" "tun"
+eq "$(uci get openvpn.vtun0.dev)" "vtun0"
+eq "$(uci get openvpn.vtun0.dev_type)" "tun"
 eq "$(uci get openvpn.vtun0.ifconfig)" "10.9.8.1 10.9.8.2"
 eq "$(uci get openvpn.vtun0.port)" "1194"
 eq "$(uci get openvpn.vtun0.remote)" "203.0.113.9"
@@ -56,6 +57,11 @@ EOF
 contains "$out" "vtun0"
 contains "$(printf '%s\n' "$out" | sed -n '/--name/,/--opts/p')" "encryption"
 contains "$(printf '%s\n' "$out" | sed -n '/--opts/,/--enc/p')" "aes256"
+
+# non-static-key sections (OpenWrt samples) must NOT render as site-to-site
+uci set openvpn.srv=openvpn; uci set openvpn.srv.mode=server; uci set openvpn.srv.ca=/etc/ca.crt; uci commit openvpn
+not_contains "$(confsh show configuration interfaces openvpn)" "openvpn srv"
+uci delete openvpn.srv; uci commit openvpn
 
 cs <<'EOF' || fail "delete option failed"
 configure

@@ -44,10 +44,24 @@ contains "$out" "set interfaces tunnel tun0 encapsulation 'gre'"
 contains "$out" "set interfaces tunnel tun0 address '10.0.0.1/30'"
 contains "$out" "set interfaces tunnel tun0 remote-ip '203.0.113.1'"
 
-for bad in "tun0 encapsulation bogus" "tun0 local-ip notanip" "tun0 address 10.0.0.1" "tun0 mtu abc"; do
+for bad in "tun0 encapsulation bogus" "tun0 local-ip notanip" "tun0 address 10.0.0.1" \
+	"tun0 address 2001:db8::1/64" "tun0 mtu abc"; do
 	out=$(printf 'configure\nset interfaces tunnel %s\n' "$bad" | confsh -s 2>&1) && fail "'$bad' must fail"
 	contains "$out" "failed"
 done
+
+# must refuse hijacking an existing non-tunnel interface (the stock 'lan')
+out=$(printf 'configure\nset interfaces tunnel lan encapsulation gre\n' | confsh -s 2>&1) && fail "clobbering lan must fail"
+contains "$out" "not a tunnel"
+eq "$(uci get network.lan.proto)" "static"
+
+# deleting encapsulation resets proto to gre (never leaves no protocol)
+cs <<'EOF' || fail "reset proto failed"
+configure
+delete interfaces tunnel tun1 encapsulation
+commit
+EOF
+eq "$(uci get network.tun1.proto)" "gre"
 
 out=$(cs <<'EOF'
 configure
