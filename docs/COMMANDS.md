@@ -97,10 +97,31 @@ forwards created in LuCI don't appear here, but they are still listed by
 Interface names map to firewall zones: `wan-interface eth0` uses the
 zone containing the network interface whose device is `eth0`.
 
+**`interfaces wireguard`** (a `network` interface with `proto wireguard`,
+plus a `wireguard_<interface>` section per peer, named `peer_<key>` when
+confsh creates it):
+
+```text
+set interfaces wireguard wg0 private-key <base64-key>
+set interfaces wireguard wg0 listen-port 51820
+set interfaces wireguard wg0 address 10.0.0.1/24
+set interfaces wireguard wg0 peer <pubkey> allowed-ips 10.0.0.2/32
+set interfaces wireguard wg0 peer <pubkey> endpoint vpn.example.com:51820
+set interfaces wireguard wg0 peer <pubkey> persistent-keepalive 25
+set interfaces wireguard wg0 peer <pubkey> route-allowed-ips true
+delete interfaces wireguard wg0 peer <pubkey>
+```
+
+Peers are keyed by public key; `edit interfaces wireguard wg0 peer
+<pubkey>` works, and `private-key`/`preshared-key` are shown masked.
+`route-allowed-ips` is per peer, as in OpenWrt (EdgeOS set it once per
+interface — WireGuard was never in the official EdgeOS CLI, so there is
+no canonical form to follow). Peers created in LuCI are shown by
+`show interfaces wireguard` under their UCI section name.
+
 Next up: `service nat` and `interfaces ethernet … vif` (confsh), and
-`interfaces wireguard`, `vpn ipsec`, `interfaces openvpn` and
-`interfaces tunnel` (contributed). Module authors: see
-[DIALECTS.md](DIALECTS.md).
+`vpn ipsec`, `interfaces openvpn` and `interfaces tunnel` (contributed).
+Module authors: see [DIALECTS.md](DIALECTS.md).
 
 ## Configuration mode
 
@@ -353,8 +374,8 @@ dnsmasq.
 
 ## Not yet supported
 
-- EdgeOS-style paths beyond `port-forward` (see
-  [EdgeOS paths](#edgeos-paths)), and importing an EdgeOS `config.boot`.
+- EdgeOS-style paths beyond `port-forward` and `interfaces wireguard`
+  (see [EdgeOS paths](#edgeos-paths)), and importing an EdgeOS `config.boot`.
 - `load`, `merge`, `save <file>`, `rename`, `copy`, `comment` nodes.
 - `?` for inline help (use <kbd>Tab</kbd>).
 - Per-user permissions: confsh runs as the logged-in user (normally
