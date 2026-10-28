@@ -37,7 +37,7 @@ const GRAMMAR = {
 				'allowed-ips': { type: 'cidr' },
 				'description': { type: 'text' },
 				'disable': { flag: true },
-				'endpoint': { type: 'host' },
+				'endpoint': { type: 'text' },
 				'persistent-keepalive': { type: 'number' },
 				'preshared-key': { type: 'key' },
 				'route-allowed-ips': { values: [ 'true', 'false' ] }
@@ -56,6 +56,12 @@ function iface_id(ctx, name, create) {
 
 	if (t != null && t != 'interface')
 		ctx.fail(`network section '${name}' exists but is a '${t}', not an interface`);
+
+	if (t == 'interface') {
+		let proto = ctx.cur.get('network', name, 'proto');
+		if (proto != null && proto != 'wireguard')
+			ctx.fail(`interface '${name}' exists with proto '${proto}', not wireguard`);
+	}
 
 	if (t == null) {
 		if (!create)
@@ -88,25 +94,40 @@ function peer_id(ctx, ifname, key, create) {
 	if (!create)
 		ctx.fail(`Nothing to delete: peer ${key} does not exist`);
 
-	id = `peer_${replace(key, /[^A-Za-z0-9]/g, '')}`;
+	id = `${ifname}_peer_${replace(key, /[^A-Za-z0-9]/g, '')}`;
 	ctx.cur.set('network', id, peer_type(ifname));
 	ctx.cur.set('network', id, 'public_key', key);
 
 	return id;
 }
 
-// host:port -> [ host, port ]; port is null when absent. Splits on last ':'.
+// endpoint -> [ host, port|null ]. Handles host:port, 1.2.3.4:port,
+// [2001:db8::1]:port, and bare IPv6 (kept whole, no port).
 function split_endpoint(v) {
+	if (substr(v, 0, 1) == '[') {                 // [v6]:port
+		let close = index(v, ']');
+		if (close > 1) {
+			let rest = substr(v, close + 1);
+			return [ substr(v, 1, close - 1), (substr(rest, 0, 1) == ':') ? substr(rest, 1) : null ];
+		}
+	}
 	let at = -1;
-
 	for (let i = 0; i < length(v); i++)
 		if (substr(v, i, 1) == ':')
 			at = i;
-
 	if (at < 0)
 		return [ v, null ];
+	let host = substr(v, 0, at), port = substr(v, at + 1);
+	// bare IPv6 (host part still has a ':') -> treat the whole thing as host
+	if (index(host, ':') >= 0 || match(port, /^[0-9]+$/) == null)
+		return [ v, null ];
+	return [ host, port ];
+}
 
-	return [ substr(v, 0, at), substr(v, at + 1) ];
+// Reassemble host + port for display (brackets for IPv6 with a port).
+function join_endpoint(host, port) {
+	if (port == null) return host;
+	return (index(host, ':') >= 0) ? `[${host}]:${port}` : `${host}:${port}`;
 }
 
 function list_add(ctx, id, opt, val) {
@@ -276,8 +297,7 @@ function peer_node(po) {
 		push(pk, { name: 'disable' });
 
 	if (po.endpoint_host != null)
-		push(pk, { name: 'endpoint',
-			value: po.endpoint_host + ((po.endpoint_port != null) ? `:${po.endpoint_port}` : '') });
+		push(pk, { name: 'endpoint', value: join_endpoint(po.endpoint_host, po.endpoint_port) });
 
 	if (po.persistent_keepalive != null)
 		push(pk, { name: 'persistent-keepalive', value: po.persistent_keepalive });
@@ -317,7 +337,8 @@ function render(ctx) {
 			(a, b) => ((a.opts.public_key ?? '') < (b.opts.public_key ?? '')) ? -1 : 1);
 
 		for (let pr in peers)
-			push(kids, { name: `peer ${pr.opts.public_key}`, children: peer_node(pr.opts) });
+			if (pr.opts.public_key != null)
+				push(kids, { name: `peer ${pr.opts.public_key}`, children: peer_node(pr.opts) });
 
 		if (o.private_key != null)
 			push(kids, { name: 'private-key', value: o.private_key, secret: true });

@@ -4,8 +4,8 @@
 
 K1="FeK6ZuPJm4863djMSGkYsmKn3KR4LdZ1AxJrCkoUrcs="
 K2="t3MVDt25/Awbp0s80QpVOGHTOMNWcQN8n7wn6h8W7rc="
-PID1="peer_$(printf '%s' "$K1" | tr -cd 'A-Za-z0-9')"
-PID2="peer_$(printf '%s' "$K2" | tr -cd 'A-Za-z0-9')"
+PID1="wg0_peer_$(printf '%s' "$K1" | tr -cd 'A-Za-z0-9')"
+PID2="wg0_peer_$(printf '%s' "$K2" | tr -cd 'A-Za-z0-9')"
 
 out=$(cs <<EOF
 configure
@@ -83,6 +83,21 @@ for bad in "wg0 peer notabase64key allowed-ips 10.0.0.9/32" \
 	out=$(printf 'configure\nset interfaces wireguard %s\n' "$bad" | confsh -s 2>&1) && fail "'$bad' must fail"
 	contains "$out" "failed"
 done
+
+# must refuse hijacking an existing non-wireguard interface (the stock 'lan')
+out=$(printf 'configure\nset interfaces wireguard lan listen-port 51820\n' | confsh -s 2>&1) && fail "clobbering lan must fail"
+contains "$out" "not wireguard"
+uci -q get network.lan.listen_port && fail "lan must be untouched"
+
+# IPv6 endpoint with a port: brackets in, brackets back out
+cs <<EOF || fail "v6 endpoint failed"
+configure
+set interfaces wireguard wg0 peer $K1 endpoint [2001:db8::1]:51820
+commit
+EOF
+eq "$(uci get "network.$PID1.endpoint_host")" "2001:db8::1"
+eq "$(uci get "network.$PID1.endpoint_port")" "51820"
+contains "$(confsh show configuration interfaces wireguard wg0)" "endpoint [2001:db8::1]:51820"
 
 # completion
 out=$(cs <<EOF
