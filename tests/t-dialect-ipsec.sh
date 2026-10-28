@@ -70,11 +70,27 @@ contains "$(confsh show vpn ipsec sa)" "ESTABLISHED"
 for bad in "ike-group IKE1 proposal 2 encryption aes256" \
 	"ike-group IKE1 proposal 1 encryption bogus" \
 	"ike-group IKE1 proposal 1 dh-group abc" \
+	"ike-group IKE1 proposal 1 dh-group 99" \
+	"ike-group BAD-NAME proposal 1 encryption aes256" \
 	"site-to-site peer 198.51.100.10 bogus x"; do
 	out=$(printf 'configure\nset vpn ipsec %s\n' "$bad" | confsh -s 2>&1) && fail "'$bad' must fail"
 	contains "$out" "failed"
 done
 contains "$(printf 'configure\nset vpn ipsec ike-group IKE1 proposal 2 encryption aes256\n' | confsh -s 2>&1)" "proposal 1"
+contains "$(printf 'configure\nset vpn ipsec ike-group BAD-NAME proposal 1 encryption aes256\n' | confsh -s 2>&1)" "underscore"
+
+# AEAD (GCM) cipher must not be combined with a hash
+out=$(cs <<'EOF'
+configure
+set vpn ipsec ike-group GCM proposal 1 encryption aes256gcm128
+set vpn ipsec ike-group GCM proposal 1 hash sha256
+EOF
+) && fail "GCM+hash must fail"
+contains "$out" "AEAD"
+
+# deleting a group still referenced by the peer/tunnel must be refused
+contains "$(printf 'configure\ndelete vpn ipsec ike-group IKE1\n' | confsh -s 2>&1)" "in use"
+contains "$(printf 'configure\ndelete vpn ipsec esp-group ESP1\n' | confsh -s 2>&1)" "in use"
 
 # completion
 out=$(cs <<'EOF'

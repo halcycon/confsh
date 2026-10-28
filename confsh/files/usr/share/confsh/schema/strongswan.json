@@ -14,7 +14,6 @@
 		"remote": {
 			"enabled": { "type": "bool" },
 			"gateway": {},
-			"local_gateway": {},
 			"local_ip": {},
 			"local_identifier": {},
 			"remote_identifier": {},

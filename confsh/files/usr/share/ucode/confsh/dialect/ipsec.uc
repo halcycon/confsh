@@ -36,13 +36,14 @@ function dh_from_uci(v) {
 
 const ENC = [ '3des', 'aes128', 'aes192', 'aes256', 'aes128gcm128', 'aes256gcm128' ];
 const HASH = [ 'sha1', 'sha256', 'sha384', 'sha512' ];
+function is_aead(enc) { return enc != null && index(enc, 'gcm') >= 0; }
 
 const PROPOSAL = {
 	tag: 'number',
 	children: {
 		'encryption': { values: ENC },
 		'hash': { values: HASH },
-		'dh-group': { type: 'number' }
+		'dh-group': { values: keys(DH) }
 	}
 };
 
@@ -125,14 +126,28 @@ function remote_sec(ctx, a, create) {
 	let t = ctx.cur.get(CFG, id);
 	if (t != null && t != 'remote')
 		ctx.fail(`ipsec section '${id}' exists but is a '${t}'`);
-	if (t == null) {
-		if (!create) ctx.fail(`Nothing to delete: peer ${a} does not exist`);
-		ctx.cur.set(CFG, id, 'remote');
-		ctx.cur.set(CFG, id, 'enabled', '1');
-		ctx.cur.set(CFG, id, 'gateway', a);
-		ctx.cur.set(CFG, id, 'authentication_method', 'psk');
+	if (t == 'remote')
+		return id;
+	if (!create) {
+		// hand-written remotes may use any section name — find by gateway
+		for (let s in ctx.sections(CFG))
+			if (s.type == 'remote' && s.opts.gateway == a)
+				return s.id;
+		ctx.fail(`Nothing to delete: peer ${a} does not exist`);
 	}
+	ctx.cur.set(CFG, id, 'remote');
+	ctx.cur.set(CFG, id, 'enabled', '1');
+	ctx.cur.set(CFG, id, 'gateway', a);
+	ctx.cur.set(CFG, id, 'authentication_method', 'psk');
 	return id;
+}
+
+// true if a crypto_proposal section id is referenced by any remote/tunnel
+function group_in_use(ctx, cpid) {
+	for (let s in ctx.sections(CFG))
+		if ((s.type == 'remote' || s.type == 'tunnel') && index(as_list(s.opts.crypto_proposal), cpid) >= 0)
+			return true;
+	return false;
 }
 
 function tunnel_sec(ctx, a, n, create) {
@@ -148,16 +163,33 @@ function tunnel_sec(ctx, a, n, create) {
 	return id;
 }
 
+// Group names map to section ids; keep them to [A-Za-z0-9_] so e.g. FOO-IKE
+// is not silently renamed to FOO_IKE.
+function check_gname(ctx, g) {
+	if (match(g, /^[A-Za-z0-9_]+$/) == null)
+		ctx.fail(`group name '${g}' must contain only letters, digits and underscore`);
+}
+
 function set_group(ctx, p, kind) {
 	let s = p.steps;
 	let g = s[1].tag;
+	check_gname(ctx, g);
 	let id = proposal_id(ctx, kind, g, true);
 
 	if (length(s) >= 3 && s[2].key == 'proposal') {
 		if (s[2].tag != '1')
 			ctx.fail('Only proposal 1 is supported per group in this version');
-		if (p.leaf == 'encryption') ctx.cur.set(CFG, id, 'encryption_algorithm', p.value);
-		else if (p.leaf == 'hash') ctx.cur.set(CFG, id, 'hash_algorithm', p.value);
+		if (p.leaf == 'encryption') {
+			// strongswan rejects an AEAD (GCM) cipher combined with a hash
+			if (is_aead(p.value) && ctx.cur.get(CFG, id, 'hash_algorithm') != null)
+				ctx.fail(`${p.value} is an AEAD cipher; remove 'hash' from this group first`);
+			ctx.cur.set(CFG, id, 'encryption_algorithm', p.value);
+		}
+		else if (p.leaf == 'hash') {
+			if (is_aead(ctx.cur.get(CFG, id, 'encryption_algorithm')))
+				ctx.fail(`cannot set 'hash' with an AEAD (GCM) cipher`);
+			ctx.cur.set(CFG, id, 'hash_algorithm', p.value);
+		}
 		else if (p.leaf == 'dh-group') ctx.cur.set(CFG, id, 'dh_group', dh_to_uci(p.value));
 	}
 	ctx.touch(CFG);
@@ -211,14 +243,19 @@ function del(ctx, p) {
 
 	if (kind == 'ike-group' || kind == 'esp-group') {
 		let pfx = (kind == 'ike-group') ? 'ike' : 'esp';
+		check_gname(ctx, s[1].tag);
 		let id = proposal_id(ctx, pfx, s[1].tag, false);
-		if (!p.leaf && length(s) == 2) cur.delete(CFG, id);
-		else if (length(s) >= 3 && s[2].key == 'proposal') {
+		if (!p.leaf) {                                   // whole group or 'proposal 1' -> the section
+			if (group_in_use(ctx, id))
+				ctx.fail(`${kind} ${s[1].tag} is still in use; detach it from peers/tunnels first`);
+			cur.delete(CFG, id);
+		}
+		else {
 			let opt = (p.leaf == 'encryption') ? 'encryption_algorithm' :
 				(p.leaf == 'hash') ? 'hash_algorithm' :
 				(p.leaf == 'dh-group') ? 'dh_group' : null;
-			if (!p.leaf) cur.delete(CFG, id);            // delete proposal -> whole section
-			else { if (cur.get(CFG, id, opt) == null) ctx.fail(`Nothing to delete: ${p.leaf} is not set`); cur.delete(CFG, id, opt); }
+			if (!opt || cur.get(CFG, id, opt) == null) ctx.fail(`Nothing to delete: ${p.leaf} is not set`);
+			cur.delete(CFG, id, opt);
 		}
 		ctx.touch(CFG);
 		return;
