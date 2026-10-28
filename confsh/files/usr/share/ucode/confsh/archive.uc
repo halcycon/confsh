@@ -3,7 +3,7 @@
 
 import * as fs from 'fs';
 import {
-	fail, user, fmt_time, mkdir_p, read_json, write_json, reload,
+	fail, user, fmt_time, private_dir, read_json, write_json, reload,
 	BACKEND, RUNDIR
 } from 'confsh.util';
 
@@ -39,7 +39,12 @@ export function list() {
 };
 
 function snapshot(file) {
-	return system([ 'tar', '-czf', file, '-C', '/etc', 'config' ]) == 0;
+	if (system([ 'tar', '-czf', file, '-C', '/etc', 'config' ]) != 0)
+		return false;
+
+	fs.chmod(file, 0o600);
+
+	return true;
 }
 
 /* Restores the files contained in an archive; other configs are untouched. */
@@ -54,7 +59,7 @@ export function add(comment, via) {
 	let t = time();
 	let name = `config.${t}.tar.gz`;
 
-	mkdir_p(st.path);
+	private_dir(st.path);
 
 	for (let n = 1; fs.stat(`${st.path}/${name}`); n++)
 		name = `config.${t}-${n}.tar.gz`;
@@ -119,7 +124,7 @@ export function confirm_pending() {
 };
 
 export function confirm_prepare() {
-	mkdir_p(STATE);
+	private_dir(STATE);
 
 	if (!snapshot(PRE))
 		fail('Failed to snapshot configuration for commit-confirm');

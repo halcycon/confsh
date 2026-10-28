@@ -4,7 +4,7 @@
 import * as fs from 'fs';
 import {
 	fail, startswith, as_list, hint, valid_name, valid_type, config_stamps,
-	uci_cli_pending, mkdir_p, rm_rf, read_json, write_json, reload, user,
+	uci_cli_pending, mkdir_p, private_dir, rm_rf, read_json, write_json, reload, user,
 	CONFDIR, RUNDIR
 } from 'confsh.util';
 import * as tree from 'confsh.tree';
@@ -81,7 +81,7 @@ function cmd_session_new(args) {
 	if (!match(pid, /^[0-9]+$/))
 		fail('usage: session-new <pid>');
 
-	mkdir_p(SESSIONS);
+	private_dir(SESSIONS);
 
 	for (let d in fs.lsdir(SESSIONS) ?? [])
 		if (!fs.stat(`/proc/${d}`))

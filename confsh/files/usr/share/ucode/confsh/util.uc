@@ -61,6 +61,12 @@ export function mkdir_p(path) {
 	}
 };
 
+/* Archives, snapshots and session deltas contain keys and passwords. */
+export function private_dir(path) {
+	mkdir_p(path);
+	fs.chmod(path, 0o700);
+};
+
 export function rm_rf(path) {
 	return system([ 'rm', '-rf', path ]) == 0;
 };

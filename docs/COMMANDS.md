@@ -311,6 +311,31 @@ equivalent; this is OpenWrt's own model. A `wifi-device` is a radio; a
 | Guest SSID on the guest network | `set wireless wifi-iface guest_radio0 device radio0`<br>`set wireless wifi-iface guest_radio0 mode ap`<br>`set wireless wifi-iface guest_radio0 network guest`<br>`set wireless wifi-iface guest_radio0 ssid Guest`<br>`set wireless wifi-iface guest_radio0 encryption psk2`<br>`set wireless wifi-iface guest_radio0 key "guest password"`<br>`set wireless wifi-iface guest_radio0 isolate 1` |
 | Status | `show interfaces wireless`, `show interfaces wireless clients` |
 
+**ISC dhcpd with bind (dynamic DNS).** On routers using
+`isc-dhcp-server-ipv4` and `bind-server` instead of dnsmasq, OpenWrt's
+`isc-dhcp` package is still configured through UCI (`/etc/config/dhcp`).
+It generates `dhcpd.conf`, creates the zones in bind, and pushes static
+records into bind with `nsupdate` whenever dhcpd reloads (which
+`commit` triggers). **This only works if `/etc/dhcpd.conf` does not
+exist**: if it does, the package uses that file and ignores UCI.
+
+| Task | confsh |
+|------|--------|
+| Domain and dynamic DNS | `set dhcp isc_dhcpd isc_dhcpd domain lab.example`<br>`set dhcp isc_dhcpd isc_dhcpd dynamicdns 1`<br>`set dhcp isc_dhcpd isc_dhcpd default_lease_time 3600` |
+| Static lease (A + PTR record) | `set dhcp host nas name nas`<br>`set dhcp host nas mac 00:11:22:33:44:66`<br>`set dhcp host nas ip 192.168.1.10` |
+| CNAME | `set dhcp cname www cname www`<br>`set dhcp cname www target nas` |
+| A record without a lease | `set dhcp domain nvr name nvr`<br>`set dhcp domain nvr ip 192.168.1.20` |
+| MX (`@` = the domain itself) | `set dhcp mxhost mail domain @`<br>`set dhcp mxhost mail relay nas`<br>`set dhcp mxhost mail pref 10` |
+| SRV | `set dhcp srvhost sip srv _sip._udp`<br>`set dhcp srvhost sip target nas`<br>`set dhcp srvhost sip port 5060`<br>`set dhcp srvhost sip priority 10`<br>`set dhcp srvhost sip weight 5` |
+
+Names are relative to `domain`. The package only ever *adds* records:
+deleting a host or CNAME from UCI does not remove it from bind (use
+`nsupdate` or edit the zone). `named.conf` options (forwarders, ACLs,
+views) are not in UCI and are outside confsh's scope; see
+[#3](https://github.com/halcycon/confsh/issues/3). The `cname`,
+`mxhost`, `srvhost` and `domain` sections work the same way with
+dnsmasq.
+
 **Operational**
 
 | EdgeOS | confsh |

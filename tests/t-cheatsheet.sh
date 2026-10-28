@@ -163,3 +163,34 @@ eq "$(uci get wireless.guest_radio0.network)" "guest"
 eq "$(uci get network.lan_vlan1.ports)" "eth0:u* eth1:u*"
 eq "$(uci get network.lan.device)" "br-lan.1"
 eq "$(uci get network.cams.device)" "br-lan.20"
+
+# ISC dhcpd + bind dynamic DNS (OpenWrt isc-dhcp package, UCI mode).
+out=$(cs <<'EOF'
+configure
+set dhcp isc_dhcpd isc_dhcpd domain lab.example
+set dhcp isc_dhcpd isc_dhcpd dynamicdns 1
+set dhcp isc_dhcpd isc_dhcpd default_lease_time 3600
+set dhcp host nas name nas
+set dhcp host nas mac 00:11:22:33:44:66
+set dhcp host nas ip 192.168.1.10
+set dhcp cname www cname www
+set dhcp cname www target nas
+set dhcp domain nvr name nvr
+set dhcp domain nvr ip 192.168.1.20
+set dhcp mxhost mail domain @
+set dhcp mxhost mail relay nas
+set dhcp mxhost mail pref 10
+set dhcp srvhost sip srv _sip._udp
+set dhcp srvhost sip target nas
+set dhcp srvhost sip port 5060
+set dhcp srvhost sip priority 10
+set dhcp srvhost sip weight 5
+commit comment "isc-dhcp ddns"
+EOF
+) || fail "isc-dhcp cheat-sheet failed: $out"
+
+eq "$(uci get dhcp.isc_dhcpd)" "isc_dhcpd"
+eq "$(uci get dhcp.isc_dhcpd.dynamicdns)" "1"
+eq "$(uci get dhcp.www.target)" "nas"
+eq "$(uci get dhcp.mail.domain)" "@"
+eq "$(uci get dhcp.sip.port)" "5060"

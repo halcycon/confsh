@@ -33,7 +33,12 @@
 			"ra": { "values": [ "server", "relay", "hybrid", "disabled" ] },
 			"ra_flags": { "list": true },
 			"dhcp_option": { "list": true },
-			"dns": { "list": true }
+			"dns": { "list": true },
+			"netmask": {},
+			"domain": {},
+			"dynamicdhcp": { "type": "bool" },
+			"default_route": { "type": "bool" },
+			"routes": { "list": true }
 		},
 		"host": {
 			"name": {},
@@ -42,11 +47,43 @@
 			"leasetime": {},
 			"hostid": {},
 			"tag": {},
-			"dns": { "type": "bool" }
+			"dns": {},
+			"gateway": {},
+			"broadcast": { "type": "bool" },
+			"force_send": {},
+			"routes": { "list": true },
+			"dhcp_option": { "list": true }
 		},
 		"domain": {
 			"name": {},
 			"ip": {}
+		},
+		"cname": {
+			"cname": {},
+			"target": {}
+		},
+		"mxhost": {
+			"domain": {},
+			"relay": {},
+			"pref": {}
+		},
+		"srvhost": {
+			"srv": {},
+			"target": {},
+			"port": {},
+			"priority": {},
+			"weight": {},
+			"class": {}
+		},
+		"isc_dhcpd": {
+			"domain": {},
+			"dynamicdns": { "type": "bool" },
+			"authoritative": { "type": "bool" },
+			"always_broadcast": { "type": "bool" },
+			"boot_unknown_clients": { "type": "bool" },
+			"default_lease_time": {},
+			"max_lease_time": {},
+			"log_facility": {}
 		},
 		"odhcpd": {
 			"maindhcp": { "type": "bool" },
